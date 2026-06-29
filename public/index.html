@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Socket — Transcript Workflow</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Socket</h1>
+      <p class="tagline">Workflows own applications.</p>
+    </header>
+
+    <main>
+      <section class="panel workflow-panel">
+        <h2>YouTube → Transcript → Obsidian</h2>
+
+        <form id="transcript-form">
+          <div class="field">
+            <label for="url">YouTube URL <span class="required">*</span></label>
+            <input type="url" id="url" name="url" required placeholder="https://www.youtube.com/watch?v=...">
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="startTime">Start timestamp</label>
+              <input type="text" id="startTime" name="startTime" placeholder="00:01:00 or 60">
+            </div>
+            <div class="field">
+              <label for="endTime">End timestamp</label>
+              <input type="text" id="endTime" name="endTime" placeholder="00:05:00 or 300">
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="hostName">Host name</label>
+              <input type="text" id="hostName" name="hostName" placeholder="Host">
+            </div>
+            <div class="field">
+              <label for="guestName">Guest name</label>
+              <input type="text" id="guestName" name="guestName" placeholder="Guest">
+            </div>
+          </div>
+
+          <div class="notice" id="speaker-notice">
+            Speaker labels alternate by segment when Host and Guest are provided.
+            True diarization is not available in v0.
+          </div>
+
+          <div class="field">
+            <label for="vaultPath">Obsidian vault path <span class="required">*</span></label>
+            <input type="text" id="vaultPath" name="vaultPath" required placeholder="/path/to/your/vault">
+          </div>
+
+          <div class="field">
+            <label for="transcriptFolder">Transcript folder <span class="required">*</span></label>
+            <input type="text" id="transcriptFolder" name="transcriptFolder" required placeholder="Transcripts" value="Transcripts">
+          </div>
+
+          <button type="submit" id="submit-btn">Generate Transcript</button>
+        </form>
+      </section>
+
+      <section class="panel result-panel">
+        <h2>Result</h2>
+        <div id="status" class="status idle">Ready</div>
+        <div id="limitation" class="limitation hidden"></div>
+        <div id="file-path" class="file-path hidden"></div>
+        <pre id="preview" class="preview hidden"></pre>
+        <div id="error" class="error hidden"></div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Socket v0.1 — source: youtube drop-in · destination: obsidian drop-in</span>
+    </footer>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>

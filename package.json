@@ -1,0 +1,16 @@
+{
+  "name": "socket",
+  "version": "0.1.0",
+  "description": "Personal Orchestration Operating System prototype",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/**/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": ["socket", "workflow", "drop-in", "transcript"],
+  "license": "MIT"
+}
