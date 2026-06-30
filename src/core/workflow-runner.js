@@ -4,14 +4,12 @@ import { config } from './config.js';
 
 /**
  * Workflow Runner — executes a workflow definition and records run metadata.
- *
- * Workflow contract:
- *   { id, name, run(input, context) => { artifact, writtenPath?, preview? } }
  */
 
 export async function runWorkflow(workflow, input, context = {}) {
   const runId = `run-${Date.now()}`;
   const startedAt = new Date().toISOString();
+  const progress = [];
 
   const record = {
     id: runId,
@@ -21,8 +19,18 @@ export async function runWorkflow(workflow, input, context = {}) {
     input: sanitizeInputForLog(input),
   };
 
+  const enrichedContext = {
+    ...context,
+    runId,
+    onProgress: (stage, message) => {
+      const event = { stage, message, at: new Date().toISOString() };
+      progress.push(event);
+      context.onProgress?.(stage, message, event);
+    },
+  };
+
   try {
-    const result = await workflow.run(input, { ...context, runId });
+    const result = await workflow.run(input, enrichedContext);
     record.status = 'completed';
     record.completedAt = new Date().toISOString();
     record.result = {
@@ -30,14 +38,24 @@ export async function runWorkflow(workflow, input, context = {}) {
       preview: result.preview ?? null,
       meta: result.meta ?? {},
     };
+    record.progress = progress;
     persistRun(record);
-    return { success: true, runId, ...result };
+    return { success: true, runId, progress, ...result };
   } catch (err) {
     record.status = 'failed';
     record.completedAt = new Date().toISOString();
     record.error = err.message || String(err);
+    record.progress = progress;
     persistRun(record);
-    return { success: false, runId, error: record.error };
+    return {
+      success: false,
+      runId,
+      progress,
+      error: record.error,
+      meta: err.transcriptSourceStatus
+        ? { transcriptSourceStatus: err.transcriptSourceStatus }
+        : {},
+    };
   }
 }
 

@@ -11,6 +11,9 @@ export function renderTranscriptMarkdown({
   speakerLabels,
   range,
   created,
+  transcriptSource,
+  transcriptionProvider,
+  diarization,
 }) {
   const date = created || new Date().toISOString().slice(0, 10);
 
@@ -22,12 +25,21 @@ export function renderTranscriptMarkdown({
     `video_title: ${escapeYaml(title)}`,
     `created: ${date}`,
     `range: ${range || 'full'}`,
+    `transcript_source: ${transcriptSource || 'captions'}`,
+  ];
+
+  if (transcriptSource === 'audio_transcription') {
+    frontmatter.push(`transcription_provider: ${transcriptionProvider || 'local_whisper'}`);
+    frontmatter.push(`diarization: ${diarization === true ? 'true' : 'false'}`);
+  }
+
+  frontmatter.push(
     'speaker_labels:',
     ...Object.entries(speakerLabels || {}).map(
       ([key, name]) => `  ${key}: ${escapeYaml(name)}`
     ),
     '---',
-  ].join('\n');
+  );
 
   const body = [
     `# ${title}`,
@@ -38,7 +50,7 @@ export function renderTranscriptMarkdown({
     }),
   ].join('\n\n');
 
-  return `${frontmatter}\n\n${body}\n`;
+  return `${frontmatter.join('\n')}\n\n${body}\n`;
 }
 
 function escapeYaml(str) {

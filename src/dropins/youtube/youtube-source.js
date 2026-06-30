@@ -1,14 +1,17 @@
-import { spawn } from 'node:child_process';
+import { spawn, execSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createArtifact } from '../../core/artifact.js';
+import { config } from '../../core/config.js';
+
+export const AUDIO_FORMAT_SELECTOR = 'bestaudio/best';
 
 /**
  * YouTube Source Drop-in
  *
- * Fetches captions/subtitles via yt-dlp. Audio transcription fallback is NOT
- * implemented — if captions are unavailable, fetch() rejects with a clear error.
+ * Fetches captions/subtitles via yt-dlp when available.
+ * Falls back to audio extraction when captions are unavailable.
  */
 
 export const youtubeSourceDropin = {
@@ -22,9 +25,10 @@ export const youtubeSourceDropin = {
    * @param {string} [params.startTime] - optional start timestamp (HH:MM:SS or seconds)
    * @param {string} [params.endTime] - optional end timestamp
    * @param {function} [params._execYtDlp] - injectable for tests
+   * @param {function} [params.onProgress] - progress callback (stage, message)
    */
   async fetch(params) {
-    const { url, startTime, endTime, _execYtDlp } = params;
+    const { url, startTime, endTime, _execYtDlp, onProgress } = params;
     if (!url) throw new Error('YouTube URL is required');
 
     const execYtDlp = _execYtDlp ?? defaultExecYtDlp;
@@ -37,26 +41,42 @@ export const youtubeSourceDropin = {
       );
     }
 
+    onProgress?.('resolving_video', 'Resolving video metadata');
     const info = await fetchVideoInfo(url, execYtDlp);
+
+    onProgress?.('resolving_video', 'Checking for captions');
     const captions = await fetchCaptions(url, execYtDlp);
 
-    if (!captions || !captions.raw) {
-      throw new Error(
-        'No captions/subtitles available for this video. Audio transcription fallback is not implemented yet.'
-      );
+    if (captions?.raw) {
+      const segments = parseVttOrJsonCaptions(captions);
+      const filtered = filterByRange(segments, startTime, endTime);
+
+      return createArtifact('youtube.transcript', {
+        url,
+        videoId: info.id,
+        title: info.title,
+        segments: filtered,
+        captionFormat: captions.format,
+        transcriptSource: 'captions',
+      }, {
+        source: 'youtube',
+        fetchedAt: new Date().toISOString(),
+      });
     }
 
-    const segments = parseVttOrJsonCaptions(captions);
-    const filtered = filterByRange(segments, startTime, endTime);
+    onProgress?.('extracting_audio', 'No captions found, extracting audio');
+    const audio = await extractAudio(url, { startTime, endTime, execYtDlp });
 
-    return createArtifact('youtube.transcript', {
+    return createArtifact('youtube.audio', {
       url,
       videoId: info.id,
       title: info.title,
-      segments: filtered,
-      captionFormat: captions.format,
+      audioPath: audio.path,
+      rangeOffset: audio.rangeOffset,
+      transcriptSource: 'audio_pending',
     }, {
       source: 'youtube',
+      workDir: audio.workDir,
       fetchedAt: new Date().toISOString(),
     });
   },
@@ -77,7 +97,7 @@ async function fetchVideoInfo(url, execYtDlp) {
 }
 
 async function fetchCaptions(url, execYtDlp) {
-  const tmpDir = mkdtempSync(join(tmpdir(), 'socket-ytdlp-'));
+  const tmpDir = mkdtempSync(join(tmpdir(), 'socket-ytdlp-subs-'));
   try {
     await execYtDlp([
       '--skip-download',
@@ -95,6 +115,8 @@ async function fetchCaptions(url, execYtDlp) {
 
     const content = readFileSync(join(tmpDir, files[0]), 'utf8');
     return { raw: content, format: 'vtt' };
+  } catch {
+    return null;
   } finally {
     try {
       rmSync(tmpDir, { recursive: true, force: true });
@@ -102,6 +124,112 @@ async function fetchCaptions(url, execYtDlp) {
       // ignore cleanup errors
     }
   }
+}
+
+/**
+ * Build yt-dlp args for audio extraction fallback.
+ */
+export function buildAudioExtractionArgs(url, { startTime, endTime, outputPath }) {
+  const args = [
+    '-f', AUDIO_FORMAT_SELECTOR,
+    '-x',
+    '--audio-format', 'mp3',
+    '--no-warnings',
+    '-o', outputPath,
+  ];
+
+  const section = buildDownloadSection(startTime, endTime);
+  if (section) {
+    args.push('--download-sections', section);
+  }
+
+  args.push(url);
+  return args;
+}
+
+/**
+ * Resolve yt-dlp binary from PATH.
+ */
+export function resolveYtDlpPath(_which = defaultWhich) {
+  try {
+    const resolved = _which('yt-dlp');
+    return resolved || null;
+  } catch {
+    return null;
+  }
+}
+
+export function getYtDlpDiagnostics(_which = defaultWhich) {
+  const ytDlpPath = resolveYtDlpPath(_which);
+  let ffmpegPath = null;
+  try {
+    ffmpegPath = _which('ffmpeg');
+  } catch {
+    // ffmpeg optional for diagnostics display
+  }
+
+  return {
+    ytDlp: ytDlpPath
+      ? { available: true, path: ytDlpPath }
+      : { available: false, path: null },
+    ffmpeg: ffmpegPath
+      ? { available: true, path: ffmpegPath }
+      : { available: false, path: null },
+  };
+}
+
+function defaultWhich(cmd) {
+  return execSync(`which ${cmd}`, { encoding: 'utf8' }).trim();
+}
+
+/**
+ * Extract audio via yt-dlp. Writes to config.tmpDir only.
+ */
+export async function extractAudio(url, { startTime, endTime, execYtDlp }) {
+  const workDir = mkdtempSync(join(config.tmpDir, 'socket-audio-'));
+  const rangeOffset = startTime ? parseTimestamp(startTime) : 0;
+
+  const args = buildAudioExtractionArgs(url, {
+    startTime,
+    endTime,
+    outputPath: join(workDir, 'audio.%(ext)s'),
+  });
+
+  await execYtDlp(args);
+
+  const files = readdirSync(workDir).filter(f =>
+    /\.(wav|mp3|m4a|opus|ogg|webm)$/i.test(f)
+  );
+  if (files.length === 0) {
+    rmSync(workDir, { recursive: true, force: true });
+    throw new Error('Audio extraction failed: no audio file produced');
+  }
+
+  return {
+    path: join(workDir, files[0]),
+    workDir,
+    rangeOffset,
+  };
+}
+
+export function buildDownloadSection(startTime, endTime) {
+  if (!startTime && !endTime) return null;
+
+  const start = startTime ? formatSectionTime(startTime) : '0:00';
+  const end = endTime ? formatSectionTime(endTime) : 'inf';
+  return `*${start}-${end}`;
+}
+
+function formatSectionTime(ts) {
+  const seconds = parseTimestamp(ts);
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  if (hrs > 0) {
+    return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+  return `${mins}:${String(secs).padStart(2, '0')}`;
 }
 
 /**
@@ -170,7 +298,6 @@ function parseJsonCaptions(json) {
 
 /**
  * Parse timestamp string to seconds.
- * Accepts: "74", "1:14", "01:14", "1:01:14", "01:01:14"
  */
 export function parseTimestamp(ts) {
   if (ts == null || ts === '') return 0;
@@ -217,8 +344,9 @@ export function filterByRange(segments, startTime, endTime) {
 }
 
 function defaultExecYtDlp(args) {
+  const binary = resolveYtDlpPath() || 'yt-dlp';
   return new Promise((resolve, reject) => {
-    const proc = spawn('yt-dlp', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    const proc = spawn(binary, args, { stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '';
     let stderr = '';
     proc.stdout.on('data', d => { stdout += d; });

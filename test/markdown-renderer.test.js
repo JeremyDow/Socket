@@ -23,14 +23,33 @@ describe('markdown-renderer', () => {
       speakerLabels: { speaker_1: 'Host', speaker_2: 'Guest' },
       range: 'full',
       created: '2026-06-29',
+      transcriptSource: 'captions',
     });
 
     assert.match(md, /^---\ntype: transcript/);
+    assert.match(md, /transcript_source: captions/);
     assert.match(md, /video_title: Example Video/);
     assert.match(md, /speaker_1: Host/);
     assert.match(md, /# Example Video/);
     assert.match(md, /\[01:14\] Host:/);
     assert.match(md, /"Hello there\."/);
     assert.match(md, /\[01:22\] Guest:/);
+    assert.doesNotMatch(md, /transcription_provider/);
+  });
+
+  it('renderTranscriptMarkdown includes audio transcription metadata', () => {
+    const md = renderTranscriptMarkdown({
+      title: 'Audio Video',
+      url: 'https://youtube.com/watch?v=xyz',
+      segments: [{ start: 60, speaker: 'Speaker 1', text: 'Transcribed.' }],
+      speakerLabels: { speaker_1: 'Speaker 1' },
+      transcriptSource: 'audio_transcription',
+      transcriptionProvider: 'local_whisper',
+      diarization: false,
+    });
+
+    assert.match(md, /transcript_source: audio_transcription/);
+    assert.match(md, /transcription_provider: local_whisper/);
+    assert.match(md, /diarization: false/);
   });
 });

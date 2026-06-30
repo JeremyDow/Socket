@@ -1,0 +1,10 @@
+{
+  "_comment": "Template only. Copy structure to ~/.socket/config.json or use Save as Default in the UI.",
+  "defaults": {
+    "destination": "obsidian",
+    "obsidian": {
+      "vaultPath": "/path/to/your/vault",
+      "transcriptFolder": "Socket/Transcripts/YouTube"
+    }
+  }
+}

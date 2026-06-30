@@ -47,18 +47,25 @@
 
           <div class="notice" id="speaker-notice">
             Speaker labels alternate by segment when Host and Guest are provided.
-            True diarization is not available in v0.
+            True diarization is not available — including for audio transcription fallback.
           </div>
 
-          <div class="field">
-            <label for="vaultPath">Obsidian vault path <span class="required">*</span></label>
-            <input type="text" id="vaultPath" name="vaultPath" required placeholder="/path/to/your/vault">
-          </div>
+          <fieldset class="destination-fields">
+            <legend>Obsidian destination</legend>
+            <div id="defaults-notice" class="defaults-notice hidden"></div>
 
-          <div class="field">
-            <label for="transcriptFolder">Transcript folder <span class="required">*</span></label>
-            <input type="text" id="transcriptFolder" name="transcriptFolder" required placeholder="Transcripts" value="Transcripts">
-          </div>
+            <div class="field">
+              <label for="vaultPath">Obsidian vault path <span class="required">*</span></label>
+              <input type="text" id="vaultPath" name="vaultPath" required placeholder="/path/to/your/vault">
+            </div>
+
+            <div class="field">
+              <label for="transcriptFolder">Transcript folder <span class="required">*</span></label>
+              <input type="text" id="transcriptFolder" name="transcriptFolder" required placeholder="Socket/Transcripts/YouTube">
+            </div>
+
+            <button type="button" id="save-defaults-btn" class="secondary-btn">Save as Default</button>
+          </fieldset>
 
           <button type="submit" id="submit-btn">Generate Transcript</button>
         </form>
@@ -67,6 +74,8 @@
       <section class="panel result-panel">
         <h2>Result</h2>
         <div id="status" class="status idle">Ready</div>
+        <div id="transcript-source" class="transcript-source hidden"></div>
+        <ul id="progress-stages" class="progress-stages hidden"></ul>
         <div id="limitation" class="limitation hidden"></div>
         <div id="file-path" class="file-path hidden"></div>
         <pre id="preview" class="preview hidden"></pre>
@@ -75,7 +84,7 @@
     </main>
 
     <footer>
-      <span>Socket v0.1 — source: youtube drop-in · destination: obsidian drop-in</span>
+      <span>Socket v0.2.2 — youtube · local_whisper · obsidian</span>
     </footer>
   </div>
   <script src="/app.js"></script>

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { _resetRegistry, registerSource, registerDestination } from '../src/core/capability-registry.js';
+import { _resetRegistry, registerSource, registerDestination, registerProcessor } from '../src/core/capability-registry.js';
 import { youtubeToTranscriptWorkflow } from '../src/workflows/transcript/youtube-to-transcript.js';
 import { createArtifact } from '../src/core/artifact.js';
 
@@ -34,7 +34,15 @@ describe('youtube-to-transcript workflow', () => {
             { start: 74, text: "Today we're going to look at why this linkage works." },
             { start: 82, text: 'The interesting part is the force path.' },
           ],
+          transcriptSource: 'captions',
         });
+      },
+    });
+
+    registerProcessor('local_whisper', {
+      id: 'local_whisper',
+      async transcribe() {
+        throw new Error('not used in captions test');
       },
     });
 
@@ -70,5 +78,7 @@ describe('youtube-to-transcript workflow', () => {
     assert.match(result.preview, /\[01:22\] Guest:/);
     assert.ok(result.writtenPath);
     assert.equal(result.meta.speakerLabelMode, 'alternating');
+    assert.equal(result.meta.transcriptSource, 'captions');
+    assert.match(result.preview, /transcript_source: captions/);
   });
 });

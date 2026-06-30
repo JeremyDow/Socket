@@ -10,9 +10,11 @@ export const config = {
   port: Number(process.env.SOCKET_PORT) || 3847,
   dataDir: path.join(PROJECT_ROOT, 'data'),
   runsDir: path.join(PROJECT_ROOT, 'data', 'runs'),
+  tmpDir: path.join(PROJECT_ROOT, 'data', 'tmp'),
   publicDir: path.join(PROJECT_ROOT, 'public'),
 };
 
 export function ensureDataDirs() {
   fs.mkdirSync(config.runsDir, { recursive: true });
+  fs.mkdirSync(config.tmpDir, { recursive: true });
 }

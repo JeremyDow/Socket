@@ -4,11 +4,13 @@
  * Contract roles:
  *   source      — fetches raw content from an external origin
  *   destination — writes artifacts to an external sink
+ *   processor   — transforms artifacts (e.g. audio → transcript segments)
  */
 
 const registry = {
   sources: new Map(),
   destinations: new Map(),
+  processors: new Map(),
 };
 
 export function registerSource(id, dropin) {
@@ -19,6 +21,11 @@ export function registerSource(id, dropin) {
 export function registerDestination(id, dropin) {
   validateDropin(dropin, 'destination');
   registry.destinations.set(id, dropin);
+}
+
+export function registerProcessor(id, processor) {
+  validateProcessor(processor);
+  registry.processors.set(id, processor);
 }
 
 export function getSource(id) {
@@ -33,12 +40,22 @@ export function getDestination(id) {
   return dropin;
 }
 
+export function getProcessor(id) {
+  const processor = registry.processors.get(id);
+  if (!processor) throw new Error(`Processor not found: ${id}`);
+  return processor;
+}
+
 export function listSources() {
   return [...registry.sources.keys()];
 }
 
 export function listDestinations() {
   return [...registry.destinations.keys()];
+}
+
+export function listProcessors() {
+  return [...registry.processors.keys()];
 }
 
 function validateDropin(dropin, role) {
@@ -56,8 +73,21 @@ function validateDropin(dropin, role) {
   }
 }
 
+function validateProcessor(processor) {
+  if (!processor || typeof processor !== 'object') {
+    throw new Error('Invalid processor: must be an object');
+  }
+  if (typeof processor.id !== 'string' || !processor.id) {
+    throw new Error('Processor must have a string id');
+  }
+  if (typeof processor.transcribe !== 'function') {
+    throw new Error(`Processor "${processor.id}" must implement transcribe()`);
+  }
+}
+
 /** @internal — reset registry for tests */
 export function _resetRegistry() {
   registry.sources.clear();
   registry.destinations.clear();
+  registry.processors.clear();
 }

@@ -117,21 +117,70 @@ input:focus {
   margin-bottom: 1rem;
 }
 
-button[type="submit"] {
+.destination-fields {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.destination-fields legend {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 0.25rem;
+}
+
+.defaults-notice {
+  font-size: 0.8rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+}
+
+.defaults-notice.success {
+  background: rgba(76, 175, 130, 0.1);
+  color: var(--success);
+}
+
+.defaults-notice.warning {
+  background: rgba(230, 162, 60, 0.1);
+  color: var(--warning);
+}
+
+button[type="submit"],
+button.secondary-btn {
   width: 100%;
   padding: 0.75rem;
-  background: var(--accent);
-  color: #fff;
   border: none;
   border-radius: var(--radius);
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
+}
+
+button[type="submit"] {
+  background: var(--accent);
+  color: #fff;
   margin-top: 0.5rem;
 }
 
+button.secondary-btn {
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  margin-top: 0.25rem;
+}
+
 button[type="submit"]:hover { background: var(--accent-hover); }
-button[type="submit"]:disabled {
+button.secondary-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+button[type="submit"]:disabled,
+button.secondary-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -147,6 +196,51 @@ button[type="submit"]:disabled {
 .status.running { background: rgba(108, 158, 255, 0.15); color: var(--accent); }
 .status.success { background: rgba(76, 175, 130, 0.15); color: var(--success); }
 .status.error { background: rgba(232, 93, 93, 0.15); color: var(--error); }
+
+.transcript-source {
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+}
+
+.transcript-source.captions_found {
+  background: rgba(76, 175, 130, 0.1);
+  color: var(--success);
+}
+
+.transcript-source.no_captions_using_audio_fallback {
+  background: rgba(230, 162, 60, 0.1);
+  color: var(--warning);
+}
+
+.transcript-source.audio_fallback_unavailable {
+  background: rgba(232, 93, 93, 0.1);
+  color: var(--error);
+}
+
+.progress-stages {
+  list-style: none;
+  margin-bottom: 1rem;
+  font-size: 0.8rem;
+}
+
+.progress-stages .stage {
+  padding: 0.3rem 0;
+  color: var(--muted);
+}
+
+.progress-stages .stage::before {
+  content: '○ ';
+}
+
+.progress-stages .stage.done {
+  color: var(--success);
+}
+
+.progress-stages .stage.done::before {
+  content: '✓ ';
+}
 
 .limitation {
   font-size: 0.8rem;

@@ -6,7 +6,9 @@ import { config, ensureDataDirs } from './src/core/config.js';
 import { bootstrapDropins } from './src/bootstrap.js';
 import { runWorkflow } from './src/core/workflow-runner.js';
 import { youtubeToTranscriptWorkflow } from './src/workflows/transcript/youtube-to-transcript.js';
-import { listSources, listDestinations } from './src/core/capability-registry.js';
+import { listSources, listDestinations, listProcessors } from './src/core/capability-registry.js';
+import { getYtDlpDiagnostics } from './src/dropins/youtube/youtube-source.js';
+import { loadUserConfig, saveUserDefaults } from './src/core/user-config.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -29,13 +31,41 @@ const server = http.createServer(async (req, res) => {
         ok: true,
         sources: listSources(),
         destinations: listDestinations(),
+        processors: listProcessors(),
         workflows: ['youtube-to-transcript'],
+        diagnostics: getYtDlpDiagnostics(),
       });
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/config') {
+      const { defaults, exists, source, migration } = loadUserConfig();
+      return json(res, 200, { defaults, exists, source, migration });
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/config/defaults') {
+      const body = await readBody(req);
+      const input = JSON.parse(body);
+      try {
+        const saved = saveUserDefaults(input.defaults ?? input);
+        return json(res, 200, {
+          success: true,
+          defaults: saved.defaults,
+          message: 'Defaults saved',
+        });
+      } catch (err) {
+        return json(res, 422, { success: false, error: err.message || String(err) });
+      }
     }
 
     if (req.method === 'POST' && url.pathname === '/api/workflows/transcript') {
       const body = await readBody(req);
       const input = JSON.parse(body);
+      const stream = req.headers.accept === 'application/x-ndjson';
+
+      if (stream) {
+        return streamWorkflow(res, input);
+      }
+
       const result = await runWorkflow(youtubeToTranscriptWorkflow, input);
       const status = result.success ? 200 : 422;
       return json(res, status, result);
@@ -51,9 +81,35 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+async function streamWorkflow(res, input) {
+  res.writeHead(200, {
+    'Content-Type': 'application/x-ndjson',
+    'Transfer-Encoding': 'chunked',
+    'Cache-Control': 'no-cache',
+  });
+
+  const writeEvent = (event) => {
+    res.write(JSON.stringify(event) + '\n');
+  };
+
+  try {
+    const result = await runWorkflow(youtubeToTranscriptWorkflow, input, {
+      onProgress: (stage, message) => {
+        writeEvent({ type: 'progress', stage, message });
+      },
+    });
+
+    writeEvent({ type: 'complete', ...result });
+  } catch (err) {
+    writeEvent({ type: 'error', error: err.message || String(err) });
+  }
+
+  res.end();
+}
+
 server.listen(config.port, () => {
   console.log(`Socket running at http://localhost:${config.port}`);
-  console.log('Drop-ins: youtube (source), obsidian (destination)');
+  console.log('Drop-ins: youtube (source), obsidian (destination), local_whisper (processor)');
 });
 
 function serveStatic(req, res, pathname) {
