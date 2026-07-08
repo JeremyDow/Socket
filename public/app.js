@@ -3,12 +3,23 @@ const statusEl = document.getElementById('status');
 const previewEl = document.getElementById('preview');
 const errorEl = document.getElementById('error');
 const filePathEl = document.getElementById('file-path');
+const filePathPanel = document.getElementById('file-path-panel');
+const previewPanel = document.getElementById('preview-panel');
 const limitationEl = document.getElementById('limitation');
 const transcriptSourceEl = document.getElementById('transcript-source');
 const progressStagesEl = document.getElementById('progress-stages');
 const submitBtn = document.getElementById('submit-btn');
 const saveDefaultsBtn = document.getElementById('save-defaults-btn');
 const defaultsNoticeEl = document.getElementById('defaults-notice');
+const copyPathBtn = document.getElementById('copy-path-btn');
+const revealBtn = document.getElementById('reveal-btn');
+const copyMarkdownBtn = document.getElementById('copy-markdown-btn');
+const copyQuotesBtn = document.getElementById('copy-quotes-btn');
+const diagnosticsEl = document.getElementById('diagnostics');
+
+let currentWrittenPath = '';
+let currentMarkdown = '';
+let revealSupported = false;
 
 const STAGE_LABELS = {
   resolving_video: 'Resolving video',
@@ -25,6 +36,12 @@ const SOURCE_STATUS_LABELS = {
 };
 
 loadDefaults();
+loadDiagnostics();
+
+copyPathBtn.addEventListener('click', () => copyText(currentWrittenPath, 'Path copied'));
+copyMarkdownBtn.addEventListener('click', () => copyText(currentMarkdown, 'Markdown copied'));
+copyQuotesBtn.addEventListener('click', () => copyText(extractQuoteBlocks(currentMarkdown), 'Quote block copied'));
+revealBtn.addEventListener('click', revealInFinder);
 
 saveDefaultsBtn.addEventListener('click', async () => {
   const vaultPath = form.vaultPath.value.trim();
@@ -165,8 +182,78 @@ async function loadDefaults() {
       showDefaultsNotice('Defaults loaded.', 'success');
     }
   } catch {
-    // Non-fatal — user can still enter paths manually
+    // Non-fatal
   }
+}
+
+async function loadDiagnostics() {
+  try {
+    const res = await fetch('/api/health');
+    const data = await res.json();
+    const d = data.diagnostics || {};
+
+    revealSupported = d.platform === 'darwin';
+    revealBtn.style.display = revealSupported ? 'inline-block' : 'none';
+
+    const fmt = (tool) => {
+      if (!tool) return 'n/a';
+      return tool.available ? tool.path : 'not found';
+    };
+
+    diagnosticsEl.textContent =
+      `yt-dlp: ${fmt(d.ytDlp)} · ffmpeg: ${fmt(d.ffmpeg)} · whisper: ${fmt(d.whisper)}`;
+  } catch {
+    diagnosticsEl.textContent = 'Diagnostics unavailable';
+  }
+}
+
+async function revealInFinder() {
+  if (!currentWrittenPath) return;
+
+  try {
+    const res = await fetch('/api/reveal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: currentWrittenPath }),
+    });
+    const data = await res.json();
+    if (!data.success) {
+      if (res.status === 501) {
+        await copyText(currentWrittenPath, 'Reveal unavailable — path copied instead');
+      } else {
+        throw new Error(data.error || 'Reveal failed');
+      }
+    }
+  } catch (err) {
+    showError(err.message || String(err));
+  }
+}
+
+function extractQuoteBlocks(markdown) {
+  if (!markdown) return '';
+  const withoutFrontmatter = markdown.replace(/^---[\s\S]*?---\n*/m, '');
+  const match = withoutFrontmatter.match(/^# .+\n\n([\s\S]*)$/m);
+  return match ? match[1].trim() : withoutFrontmatter.trim();
+}
+
+async function copyText(text, successMessage) {
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    flashButtonStatus(successMessage);
+  } catch {
+    showError('Clipboard copy failed');
+  }
+}
+
+function flashButtonStatus(message) {
+  const prev = statusEl.textContent;
+  const prevClass = statusEl.className;
+  setStatus('success', message);
+  setTimeout(() => {
+    statusEl.className = prevClass;
+    statusEl.textContent = prev;
+  }, 1500);
 }
 
 function showDefaultsNotice(message, kind = 'success') {
@@ -181,11 +268,13 @@ function setStatus(kind, text) {
 }
 
 function clearResult() {
-  previewEl.classList.add('hidden');
+  currentWrittenPath = '';
+  currentMarkdown = '';
+  previewPanel.classList.add('hidden');
   previewEl.textContent = '';
   errorEl.classList.add('hidden');
   errorEl.textContent = '';
-  filePathEl.classList.add('hidden');
+  filePathPanel.classList.add('hidden');
   filePathEl.textContent = '';
   limitationEl.classList.add('hidden');
   limitationEl.textContent = '';
@@ -220,14 +309,16 @@ function showTranscriptSource(status) {
 
 function showPreview(markdown) {
   if (!markdown) return;
+  currentMarkdown = markdown;
   previewEl.textContent = markdown;
-  previewEl.classList.remove('hidden');
+  previewPanel.classList.remove('hidden');
 }
 
 function showFilePath(path) {
   if (!path) return;
-  filePathEl.textContent = `Written to: ${path}`;
-  filePathEl.classList.remove('hidden');
+  currentWrittenPath = path;
+  filePathEl.textContent = path;
+  filePathPanel.classList.remove('hidden');
 }
 
 function showError(message) {

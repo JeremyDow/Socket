@@ -1,8 +1,38 @@
-import { formatTimestamp } from '../../dropins/youtube/youtube-source.js';
+import { formatTimestamp, parseTimestamp } from '../../dropins/youtube/youtube-source.js';
 
 /**
  * Render transcript data as quote-addressable markdown with YAML frontmatter.
  */
+
+export function formatRangeTimestamp(ts) {
+  if (ts == null || ts === '') return '00:00:00';
+  const seconds = Math.floor(parseTimestamp(ts));
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+export function describeRange(startTime, endTime) {
+  if (!startTime && !endTime) return 'full';
+
+  const start = startTime ? formatRangeTimestamp(startTime) : '00:00:00';
+  const end = endTime ? formatRangeTimestamp(endTime) : '';
+
+  if (startTime && endTime) return `${start}-${end}`;
+  if (startTime) return `${start}-`;
+  return `00:00:00-${end}`;
+}
+
+export function isQuoteClip(startTime, endTime) {
+  return Boolean(startTime || endTime);
+}
+
+export function quoteClipHeading(startTime, endTime) {
+  const start = startTime ? formatRangeTimestamp(startTime) : '00:00:00';
+  const end = endTime ? formatRangeTimestamp(endTime) : 'end';
+  return `## Quote Clip: ${start}–${end}`;
+}
 
 export function renderTranscriptMarkdown({
   title,
@@ -10,12 +40,16 @@ export function renderTranscriptMarkdown({
   segments,
   speakerLabels,
   range,
+  startTime,
+  endTime,
   created,
   transcriptSource,
   transcriptionProvider,
   diarization,
 }) {
   const date = created || new Date().toISOString().slice(0, 10);
+  const quoteClip = isQuoteClip(startTime, endTime);
+  const rangeLabel = range || describeRange(startTime, endTime);
 
   const frontmatter = [
     '---',
@@ -24,7 +58,7 @@ export function renderTranscriptMarkdown({
     `url: ${url}`,
     `video_title: ${escapeYaml(title)}`,
     `created: ${date}`,
-    `range: ${range || 'full'}`,
+    `range: ${rangeLabel}`,
     `transcript_source: ${transcriptSource || 'captions'}`,
   ];
 
@@ -41,9 +75,13 @@ export function renderTranscriptMarkdown({
     '---',
   );
 
+  const sectionHeading = quoteClip
+    ? quoteClipHeading(startTime, endTime)
+    : '## Transcript';
+
   const body = [
     `# ${title}`,
-    '## Transcript',
+    sectionHeading,
     ...segments.map(seg => {
       const ts = formatTimestamp(seg.start);
       return `${ts} ${seg.speaker}:\n"${escapeQuotes(seg.text)}"`;
@@ -51,6 +89,19 @@ export function renderTranscriptMarkdown({
   ].join('\n\n');
 
   return `${frontmatter.join('\n')}\n\n${body}\n`;
+}
+
+/**
+ * Extract quote blocks from rendered markdown (body only, no frontmatter).
+ */
+export function extractQuoteBlocks(markdown) {
+  if (!markdown) return '';
+
+  const withoutFrontmatter = markdown.replace(/^---[\s\S]*?---\n*/m, '');
+  const titleMatch = withoutFrontmatter.match(/^# .+\n\n([\s\S]*)$/m);
+  if (!titleMatch) return withoutFrontmatter.trim();
+
+  return titleMatch[1].trim();
 }
 
 function escapeYaml(str) {
@@ -63,12 +114,4 @@ function escapeYaml(str) {
 
 function escapeQuotes(str) {
   return (str || '').replace(/"/g, '\\"');
-}
-
-export function describeRange(startTime, endTime) {
-  if (!startTime && !endTime) return 'full';
-  const parts = [];
-  if (startTime) parts.push(`from ${startTime}`);
-  if (endTime) parts.push(`to ${endTime}`);
-  return parts.join(' ');
 }

@@ -1,6 +1,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { assignSpeakerLabels, SPEAKER_MODES } from '../src/workflows/transcript/speaker-labels.js';
+import {
+  assignSpeakerLabels,
+  SPEAKER_MODES,
+  SPEAKER_WARNING,
+} from '../src/workflows/transcript/speaker-labels.js';
 
 describe('speaker-labels', () => {
   const segments = [
@@ -15,17 +19,22 @@ describe('speaker-labels', () => {
     assert.equal(result.segments[0].speaker, 'Host');
     assert.equal(result.segments[1].speaker, 'Guest');
     assert.equal(result.segments[2].speaker, 'Host');
-    assert.match(result.limitation, /not available in v0/);
+    assert.match(result.limitation, new RegExp(SPEAKER_WARNING));
+    assert.match(result.limitation, /alternate by segment/);
   });
 
-  it('uses single speaker when only one name provided', () => {
-    const result = assignSpeakerLabels(segments, { hostName: 'Narrator' });
+  it('labels all as Host when only Host provided', () => {
+    const result = assignSpeakerLabels(segments, { hostName: 'Host' });
     assert.equal(result.mode, SPEAKER_MODES.SINGLE);
-    assert.equal(result.segments.every(s => s.speaker === 'Narrator'), true);
+    assert.equal(result.segments.every(s => s.speaker === 'Host'), true);
+    assert.match(result.limitation, new RegExp(SPEAKER_WARNING));
+    assert.match(result.limitation, /labeled as Host/);
   });
 
   it('defaults to Speaker 1 when no names provided', () => {
     const result = assignSpeakerLabels(segments);
-    assert.equal(result.segments[0].speaker, 'Speaker 1');
+    assert.equal(result.segments.every(s => s.speaker === 'Speaker 1'), true);
+    assert.match(result.limitation, new RegExp(SPEAKER_WARNING));
+    assert.match(result.limitation, /Speaker 1/);
   });
 });

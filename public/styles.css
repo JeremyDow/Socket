@@ -117,6 +117,27 @@ input:focus {
   margin-bottom: 1rem;
 }
 
+.clip-fields {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.clip-fields legend {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 0.25rem;
+}
+
+.field-hint {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+}
+
 .destination-fields {
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -251,24 +272,65 @@ button.secondary-btn:disabled {
   border-radius: var(--radius);
 }
 
-.file-path {
-  font-family: var(--mono);
-  font-size: 0.8rem;
-  color: var(--success);
+.output-panel {
   margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.output-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+.file-path-value {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--success);
   word-break: break-all;
+  margin-bottom: 0.5rem;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+button.inline-btn {
+  width: auto;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+button.inline-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .preview {
-  background: var(--bg);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1rem;
   font-family: var(--mono);
-  font-size: 0.75rem;
-  line-height: 1.6;
+  font-size: 0.8rem;
+  line-height: 1.7;
   overflow: auto;
-  max-height: 500px;
+  max-height: 60vh;
+  min-height: 200px;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -288,4 +350,12 @@ footer {
   text-align: center;
   font-size: 0.75rem;
   color: var(--muted);
+}
+
+.diagnostics {
+  margin-top: 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--muted);
+  word-break: break-all;
 }

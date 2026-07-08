@@ -2,23 +2,32 @@ import path from 'node:path';
 import fs from 'node:fs';
 
 const UNSAFE_CHARS = /[<>:"|?*\x00-\x1f]/g;
+const AWKWARD_PUNCT = /[|/\\#%{}$!'@+`=]/g;
+const ISOLATED_AMPERSAND = /(?<!\w)&(?!\w)/g;
 const MAX_FILENAME_LENGTH = 200;
 
 /**
  * Sanitize a string for use as a filename component.
+ * Preserves readable titles while removing unsafe or awkward punctuation.
  */
 export function sanitizeFilename(name) {
   if (!name || typeof name !== 'string') return 'untitled';
   let safe = name
     .replace(UNSAFE_CHARS, '')
+    .replace(ISOLATED_AMPERSAND, '')
+    .replace(AWKWARD_PUNCT, '')
+    .replace(/[–—]/g, '-')
+    .replace(/\.{2,}/g, '.')
+    .replace(/\s*-\s*/g, ' - ')
     .replace(/\s+/g, ' ')
     .trim()
-    .replace(/\.+$/, '');
+    .replace(/^[.\s-]+|[.\s-]+$/g, '')
+    .replace(/\.+$/g, '');
   if (!safe) safe = 'untitled';
   if (safe.length > MAX_FILENAME_LENGTH) {
-    safe = safe.slice(0, MAX_FILENAME_LENGTH);
+    safe = safe.slice(0, MAX_FILENAME_LENGTH).trim().replace(/[.\s-]+$/g, '');
   }
-  return safe;
+  return safe || 'untitled';
 }
 
 /**
