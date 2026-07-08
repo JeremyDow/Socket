@@ -1,10 +1,10 @@
 {
   "tools": [
-    { "id": "youtube", "type": "native-tool", "enabled": true },
-    { "id": "transcriber", "type": "native-tool", "enabled": true },
-    { "id": "markdown", "type": "native-tool", "enabled": true },
-    { "id": "obsidian", "type": "native-tool", "enabled": true },
-    { "id": "browser", "type": "native-tool", "enabled": false },
-    { "id": "oracle", "type": "external-app", "enabled": false }
+    { "id": "youtube", "label": "YouTube", "type": "native-tool", "enabled": true },
+    { "id": "transcriber", "label": "Transcriber", "type": "native-tool", "enabled": true },
+    { "id": "markdown", "label": "Markdown", "type": "native-tool", "enabled": true },
+    { "id": "obsidian", "label": "Obsidian", "type": "native-tool", "enabled": true },
+    { "id": "browser", "label": "Browser", "type": "native-tool", "enabled": false },
+    { "id": "oracle", "label": "Oracle", "type": "external-app", "enabled": false }
   ]
 }

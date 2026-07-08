@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Socket — Transcript Workflow</title>
+  <title>Socket — Workspace</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -13,99 +13,135 @@
       <p class="tagline">Workflows own applications.</p>
     </header>
 
+    <nav id="tool-tabs" class="tool-tabs" role="tablist" aria-label="Socket tools"></nav>
+    <p id="active-tool-status" class="active-tool-status" aria-live="polite"></p>
+
     <main>
-      <section class="panel workflow-panel">
-        <h2>YouTube → Transcript → Obsidian</h2>
-
+      <section class="panel workspace-panel">
         <form id="transcript-form">
-          <div class="field">
-            <label for="url">YouTube URL <span class="required">*</span></label>
-            <input type="url" id="url" name="url" required placeholder="https://www.youtube.com/watch?v=...">
-          </div>
+          <div id="tool-surfaces">
+            <div class="tool-surface active" data-tool-surface="youtube" role="tabpanel" aria-labelledby="tab-youtube">
+              <h2>YouTube source</h2>
+              <p class="surface-lede">Select the video and optional clip range for transcription.</p>
 
-          <fieldset class="clip-fields">
-            <legend>Full transcript or quote clip</legend>
-            <p class="field-hint">Leave both empty for the full video. Set start/end to transcribe a clip only.</p>
-            <div class="field-row">
               <div class="field">
-                <label for="startTime">Start timestamp</label>
-                <input type="text" id="startTime" name="startTime" placeholder="00:01:00 or 60">
+                <label for="url">YouTube URL <span class="required">*</span></label>
+                <input type="url" id="url" name="url" required placeholder="https://www.youtube.com/watch?v=...">
               </div>
-              <div class="field">
-                <label for="endTime">End timestamp</label>
-                <input type="text" id="endTime" name="endTime" placeholder="00:05:00 or 300">
-              </div>
-            </div>
-          </fieldset>
 
-          <div class="field-row">
-            <div class="field">
-              <label for="hostName">Host name</label>
-              <input type="text" id="hostName" name="hostName" placeholder="Host">
+              <fieldset class="clip-fields">
+                <legend>Full transcript or quote clip</legend>
+                <p class="field-hint">Leave both empty for the full video. Set start/end to transcribe a clip only.</p>
+                <div class="field-row">
+                  <div class="field">
+                    <label for="startTime">Start timestamp</label>
+                    <input type="text" id="startTime" name="startTime" placeholder="00:01:00 or 60">
+                  </div>
+                  <div class="field">
+                    <label for="endTime">End timestamp</label>
+                    <input type="text" id="endTime" name="endTime" placeholder="00:05:00 or 300">
+                  </div>
+                </div>
+              </fieldset>
+
+              <div class="field-row">
+                <div class="field">
+                  <label for="hostName">Host name</label>
+                  <input type="text" id="hostName" name="hostName" placeholder="Host">
+                </div>
+                <div class="field">
+                  <label for="guestName">Guest name</label>
+                  <input type="text" id="guestName" name="guestName" placeholder="Guest">
+                </div>
+              </div>
+
+              <button type="submit" id="submit-btn">Generate Transcript</button>
             </div>
-            <div class="field">
-              <label for="guestName">Guest name</label>
-              <input type="text" id="guestName" name="guestName" placeholder="Guest">
+
+            <div class="tool-surface hidden" data-tool-surface="transcriber" role="tabpanel" aria-labelledby="tab-transcriber">
+              <h2>Transcriber</h2>
+              <p class="surface-lede">Local speech-to-text runs after you start a job from the YouTube tool.</p>
+              <div class="notice" id="speaker-notice">
+                Speaker labels are provisional. True diarization is not available.
+                Host + Guest alternate by segment; Host only labels all as Host.
+              </div>
+              <div id="transcriber-runtime" class="surface-note">Waiting for workflow status…</div>
+            </div>
+
+            <div class="tool-surface hidden" data-tool-surface="markdown" role="tabpanel" aria-labelledby="tab-markdown">
+              <h2>Markdown</h2>
+              <p class="surface-lede">Draft transcript Markdown appears here after a successful run.</p>
+              <div id="preview-panel" class="output-panel hidden">
+                <div class="output-label">Markdown preview</div>
+                <div class="action-row">
+                  <button type="button" id="copy-markdown-btn" class="inline-btn">Copy Markdown</button>
+                  <button type="button" id="copy-quotes-btn" class="inline-btn">Copy Quote Block</button>
+                </div>
+                <pre id="preview" class="preview"></pre>
+              </div>
+              <p id="markdown-empty" class="surface-empty">No Markdown generated yet.</p>
+            </div>
+
+            <div class="tool-surface hidden" data-tool-surface="obsidian" role="tabpanel" aria-labelledby="tab-obsidian">
+              <h2>Obsidian destination</h2>
+              <p class="surface-lede">Configure where Socket writes the generated transcript file.</p>
+
+              <fieldset class="destination-fields">
+                <legend>Vault settings</legend>
+                <div id="defaults-notice" class="defaults-notice hidden"></div>
+                <p id="obsidian-validation" class="field-validation hidden" role="alert"></p>
+
+                <div class="field">
+                  <label for="vaultPath">Obsidian vault path <span class="required">*</span></label>
+                  <input type="text" id="vaultPath" name="vaultPath" required placeholder="/path/to/your/vault">
+                </div>
+
+                <div class="field">
+                  <label for="transcriptFolder">Transcript folder <span class="required">*</span></label>
+                  <input type="text" id="transcriptFolder" name="transcriptFolder" required placeholder="Socket/Transcripts/YouTube">
+                </div>
+
+                <button type="button" id="save-defaults-btn" class="secondary-btn">Save as Default</button>
+              </fieldset>
+
+              <div id="file-path-panel" class="output-panel hidden">
+                <div class="output-label">Written file</div>
+                <code id="file-path" class="file-path-value"></code>
+                <div class="action-row">
+                  <button type="button" id="copy-path-btn" class="inline-btn">Copy Path</button>
+                  <button type="button" id="reveal-btn" class="inline-btn">Reveal in Finder</button>
+                </div>
+              </div>
+              <p id="obsidian-empty" class="surface-empty">No Obsidian write yet.</p>
+            </div>
+
+            <div class="tool-surface hidden" data-tool-surface="browser" role="tabpanel" aria-labelledby="tab-browser">
+              <h2>Browser</h2>
+              <p class="surface-lede">Placeholder for future in-browser capture. Disabled in the manifest.</p>
+              <div class="surface-placeholder">Browser tool is not available in this build.</div>
+            </div>
+
+            <div class="tool-surface hidden" data-tool-surface="oracle" role="tabpanel" aria-labelledby="tab-oracle">
+              <h2>Oracle</h2>
+              <p class="surface-lede">Oracle is a separate external application. Socket may propose intake material later through a governed adapter.</p>
+              <div class="surface-placeholder unavailable">Oracle remains disabled and non-operational in this build.</div>
             </div>
           </div>
-
-          <div class="notice" id="speaker-notice">
-            Speaker labels are provisional. True diarization is not available.
-            Host + Guest alternate by segment; Host only labels all as Host.
-          </div>
-
-          <fieldset class="destination-fields">
-            <legend>Obsidian destination</legend>
-            <div id="defaults-notice" class="defaults-notice hidden"></div>
-
-            <div class="field">
-              <label for="vaultPath">Obsidian vault path <span class="required">*</span></label>
-              <input type="text" id="vaultPath" name="vaultPath" required placeholder="/path/to/your/vault">
-            </div>
-
-            <div class="field">
-              <label for="transcriptFolder">Transcript folder <span class="required">*</span></label>
-              <input type="text" id="transcriptFolder" name="transcriptFolder" required placeholder="Socket/Transcripts/YouTube">
-            </div>
-
-            <button type="button" id="save-defaults-btn" class="secondary-btn">Save as Default</button>
-          </fieldset>
-
-          <button type="submit" id="submit-btn">Generate Transcript</button>
         </form>
       </section>
 
       <section class="panel result-panel">
-        <h2>Result</h2>
+        <h2>Workflow status</h2>
         <div id="status" class="status idle">Ready</div>
         <div id="transcript-source" class="transcript-source hidden"></div>
         <ul id="progress-stages" class="progress-stages hidden"></ul>
         <div id="limitation" class="limitation hidden"></div>
-
-        <div id="file-path-panel" class="output-panel hidden">
-          <div class="output-label">Written file</div>
-          <code id="file-path" class="file-path-value"></code>
-          <div class="action-row">
-            <button type="button" id="copy-path-btn" class="inline-btn">Copy Path</button>
-            <button type="button" id="reveal-btn" class="inline-btn">Reveal in Finder</button>
-          </div>
-        </div>
-
-        <div id="preview-panel" class="output-panel hidden">
-          <div class="output-label">Markdown preview</div>
-          <div class="action-row">
-            <button type="button" id="copy-markdown-btn" class="inline-btn">Copy Markdown</button>
-            <button type="button" id="copy-quotes-btn" class="inline-btn">Copy Quote Block</button>
-          </div>
-          <pre id="preview" class="preview"></pre>
-        </div>
-
         <div id="error" class="error hidden"></div>
       </section>
     </main>
 
     <footer>
-      <span>Socket v0.3 — youtube · local_whisper · obsidian</span>
+      <span>Socket v0.4 — manifest-driven tool shell</span>
       <div id="diagnostics" class="diagnostics"></div>
     </footer>
   </div>
