@@ -6,11 +6,20 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test test/**/*.test.js"
+    "test": "node --test test/**/*.test.js",
+    "test:ui": "playwright test"
   },
   "engines": {
     "node": ">=20"
   },
-  "keywords": ["socket", "workflow", "drop-in", "transcript"],
-  "license": "MIT"
+  "keywords": [
+    "socket",
+    "workflow",
+    "drop-in",
+    "transcript"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
+  }
 }

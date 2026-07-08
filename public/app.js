@@ -44,6 +44,10 @@ const SOURCE_STATUS_LABELS = {
 let toolManifest = [];
 let activeToolId = 'youtube';
 
+const TABLIST_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'Home', 'End']);
+
+toolTabsEl.addEventListener('keydown', handleToolTabKeydown);
+
 loadToolShell();
 loadDefaults();
 loadDiagnostics();
@@ -115,6 +119,8 @@ function renderToolTabs(tools) {
     btn.dataset.toolId = tool.id;
     btn.textContent = tool.label;
     btn.setAttribute('aria-selected', 'false');
+    btn.setAttribute('aria-controls', `panel-${tool.id}`);
+    btn.setAttribute('tabindex', '-1');
 
     if (!tool.selectable) {
       btn.disabled = true;
@@ -140,15 +146,51 @@ function setActiveTool(toolId) {
     const selected = btn.dataset.toolId === toolId;
     btn.classList.toggle('active', selected);
     btn.setAttribute('aria-selected', selected ? 'true' : 'false');
+    if (!btn.disabled) {
+      btn.setAttribute('tabindex', selected ? '0' : '-1');
+    }
   }
 
   for (const surface of document.querySelectorAll('[data-tool-surface]')) {
     const active = surface.dataset.toolSurface === toolId;
     surface.classList.toggle('hidden', !active);
     surface.classList.toggle('active', active);
+    surface.hidden = !active;
   }
 
   activeToolStatusEl.textContent = `Active tool: ${tool.label}`;
+}
+
+function getSelectableToolIds() {
+  return toolManifest.filter((tool) => tool.selectable).map((tool) => tool.id);
+}
+
+function handleToolTabKeydown(event) {
+  if (!TABLIST_KEYS.has(event.key)) return;
+
+  const selectableIds = getSelectableToolIds();
+  if (selectableIds.length === 0) return;
+
+  const focusedToolId = document.activeElement?.dataset?.toolId;
+  const startToolId = selectableIds.includes(focusedToolId) ? focusedToolId : activeToolId;
+  const currentIndex = selectableIds.indexOf(startToolId);
+  if (currentIndex === -1) return;
+
+  let nextIndex = currentIndex;
+  if (event.key === 'ArrowRight') {
+    nextIndex = (currentIndex + 1) % selectableIds.length;
+  } else if (event.key === 'ArrowLeft') {
+    nextIndex = (currentIndex - 1 + selectableIds.length) % selectableIds.length;
+  } else if (event.key === 'Home') {
+    nextIndex = 0;
+  } else if (event.key === 'End') {
+    nextIndex = selectableIds.length - 1;
+  }
+
+  event.preventDefault();
+  const nextToolId = selectableIds[nextIndex];
+  setActiveTool(nextToolId);
+  document.getElementById(`tab-${nextToolId}`)?.focus();
 }
 
 function updateTranscriberSurface(message) {
@@ -171,6 +213,27 @@ function showObsidianValidation(message) {
 
 function validateTranscriptForm() {
   clearObsidianValidation();
+
+  for (const field of form.querySelectorAll('[required]')) {
+    if (field.disabled) continue;
+    const value = typeof field.value === 'string' ? field.value.trim() : field.value;
+    if (value) continue;
+
+    const surface = field.closest('[data-tool-surface]');
+    const toolId = surface?.dataset?.toolSurface;
+    if (toolId) {
+      setActiveTool(toolId);
+    }
+
+    if (toolId === 'obsidian') {
+      showObsidianValidation('Complete the required Obsidian settings before generating a transcript.');
+    }
+
+    field.focus();
+    field.reportValidity();
+    setStatus('idle', 'Ready');
+    return false;
+  }
 
   if (form.checkValidity()) {
     return true;

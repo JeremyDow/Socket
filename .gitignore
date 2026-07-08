@@ -1,5 +1,8 @@
 .DS_Store
 node_modules/
+test-results/
+playwright-report/
+playwright/.cache/
 socket.config.json
 
 # Runtime and machine-local data

@@ -18,9 +18,9 @@
 
     <main>
       <section class="panel workspace-panel">
-        <form id="transcript-form">
+        <form id="transcript-form" novalidate>
           <div id="tool-surfaces">
-            <div class="tool-surface active" data-tool-surface="youtube" role="tabpanel" aria-labelledby="tab-youtube">
+            <div class="tool-surface active" id="panel-youtube" data-tool-surface="youtube" role="tabpanel" aria-labelledby="tab-youtube" tabindex="0">
               <h2>YouTube source</h2>
               <p class="surface-lede">Select the video and optional clip range for transcription.</p>
 
@@ -58,7 +58,7 @@
               <button type="submit" id="submit-btn">Generate Transcript</button>
             </div>
 
-            <div class="tool-surface hidden" data-tool-surface="transcriber" role="tabpanel" aria-labelledby="tab-transcriber">
+            <div class="tool-surface hidden" id="panel-transcriber" data-tool-surface="transcriber" role="tabpanel" aria-labelledby="tab-transcriber" tabindex="0" hidden>
               <h2>Transcriber</h2>
               <p class="surface-lede">Local speech-to-text runs after you start a job from the YouTube tool.</p>
               <div class="notice" id="speaker-notice">
@@ -68,7 +68,7 @@
               <div id="transcriber-runtime" class="surface-note">Waiting for workflow status…</div>
             </div>
 
-            <div class="tool-surface hidden" data-tool-surface="markdown" role="tabpanel" aria-labelledby="tab-markdown">
+            <div class="tool-surface hidden" id="panel-markdown" data-tool-surface="markdown" role="tabpanel" aria-labelledby="tab-markdown" tabindex="0" hidden>
               <h2>Markdown</h2>
               <p class="surface-lede">Draft transcript Markdown appears here after a successful run.</p>
               <div id="preview-panel" class="output-panel hidden">
@@ -82,7 +82,7 @@
               <p id="markdown-empty" class="surface-empty">No Markdown generated yet.</p>
             </div>
 
-            <div class="tool-surface hidden" data-tool-surface="obsidian" role="tabpanel" aria-labelledby="tab-obsidian">
+            <div class="tool-surface hidden" id="panel-obsidian" data-tool-surface="obsidian" role="tabpanel" aria-labelledby="tab-obsidian" tabindex="0" hidden>
               <h2>Obsidian destination</h2>
               <p class="surface-lede">Configure where Socket writes the generated transcript file.</p>
 
@@ -115,13 +115,13 @@
               <p id="obsidian-empty" class="surface-empty">No Obsidian write yet.</p>
             </div>
 
-            <div class="tool-surface hidden" data-tool-surface="browser" role="tabpanel" aria-labelledby="tab-browser">
+            <div class="tool-surface hidden" id="panel-browser" data-tool-surface="browser" role="tabpanel" aria-labelledby="tab-browser" tabindex="0" hidden>
               <h2>Browser</h2>
               <p class="surface-lede">Placeholder for future in-browser capture. Disabled in the manifest.</p>
               <div class="surface-placeholder">Browser tool is not available in this build.</div>
             </div>
 
-            <div class="tool-surface hidden" data-tool-surface="oracle" role="tabpanel" aria-labelledby="tab-oracle">
+            <div class="tool-surface hidden" id="panel-oracle" data-tool-surface="oracle" role="tabpanel" aria-labelledby="tab-oracle" tabindex="0" hidden>
               <h2>Oracle</h2>
               <p class="surface-lede">Oracle is a separate external application. Socket may propose intake material later through a governed adapter.</p>
               <div class="surface-placeholder unavailable">Oracle remains disabled and non-operational in this build.</div>

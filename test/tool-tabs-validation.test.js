@@ -12,6 +12,17 @@ describe('tool tabs validation correction', () => {
     const submitBlock = appSrc.slice(appSrc.indexOf("form.addEventListener('submit'"));
 
     assert.match(appSrc, /function validateTranscriptForm\(/);
+    assert.match(appSrc, /querySelectorAll\('\[required\]'\)/);
+    assert.match(appSrc, /if \(form\.checkValidity\(\)\)/);
+    assert.match(appSrc, /querySelector\(':invalid'\)/);
+    const validateFn = appSrc.slice(
+      appSrc.indexOf('function validateTranscriptForm'),
+      appSrc.indexOf("form.addEventListener('submit'"),
+    );
+    assert.ok(
+      validateFn.indexOf("querySelectorAll('[required]')") < validateFn.indexOf('form.checkValidity()'),
+      'required-field pass should run before checkValidity fallback',
+    );
     assert.match(submitBlock, /if \(!validateTranscriptForm\(\)\)/);
     assert.match(submitBlock, /validateTranscriptForm\(\)[\s\S]*fetch\('\/api\/workflows\/transcript'/);
     assert.match(appSrc, /setActiveTool\(toolId\)/);
@@ -32,6 +43,7 @@ describe('tool tabs validation correction', () => {
 
   it('index.html exposes inline Obsidian validation affordance', () => {
     const html = fs.readFileSync(path.join(ROOT, 'public/index.html'), 'utf8');
+    assert.match(html, /id="transcript-form"[^>]*novalidate/);
     assert.match(html, /id="obsidian-validation"/);
     assert.match(html, /id="vaultPath"[^>]*required/);
     assert.match(html, /id="transcriptFolder"[^>]*required/);
