@@ -1,0 +1,53 @@
+# Socket Application Shell
+
+## Role
+
+Socket is the **host workspace** for synchronized tool tabs. It coordinates reads,
+drafts, and operator-approved writes across native tools and external apps.
+
+## Tool model
+
+- Tools appear as synchronized tabs in the Socket UI.
+- The **transcriber** is one Socket tool, not Socket itself.
+- **Oracle** is a separate application loadable through `src/adapters/oracle/`.
+- Tabs synchronize through the shared session and event layer (`src/session/`,
+  `src/events/`).
+- Tools must not call one another directly; they communicate only through
+  registered session events.
+
+## Permissions
+
+Agent autonomy is bounded by explicit permission categories in
+`src/permissions/`:
+
+- automatic — local reads and drafting
+- operator_approval — durable writes, Oracle proposals, external effects
+- forbidden — governance bypass and silent authority creation
+
+## First validated workflow
+
+The existing vertical slice remains the reference path:
+
+**YouTube → Transcriber → Markdown → Obsidian**
+
+Implementation today still lives in the established modules:
+
+- `src/dropins/youtube/`
+- `src/processors/whisper/`
+- `src/workflows/transcript/`
+- `src/dropins/obsidian/`
+
+New `src/tools/*` entry points are compatibility wrappers only. They do not
+replace the working workflow in this pass.
+
+## Oracle boundary
+
+Socket may prepare intake material and propose it to Oracle. Socket may not
+create Oracle authority, perform lifecycle transitions, or bypass Oracle gates.
+See `src/adapters/oracle/README.md`.
+
+## Configuration
+
+- Tool enablement: `config/tools.json`
+- Obsidian defaults: `socket.config.json.example` and operator-saved defaults
+  (not duplicated in the tool manifest)

@@ -1,0 +1,10 @@
+{
+  "tools": [
+    { "id": "youtube", "type": "native-tool", "enabled": true },
+    { "id": "transcriber", "type": "native-tool", "enabled": true },
+    { "id": "markdown", "type": "native-tool", "enabled": true },
+    { "id": "obsidian", "type": "native-tool", "enabled": true },
+    { "id": "browser", "type": "native-tool", "enabled": false },
+    { "id": "oracle", "type": "external-app", "enabled": false }
+  ]
+}

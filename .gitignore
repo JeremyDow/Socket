@@ -1,6 +1,20 @@
 .DS_Store
 node_modules/
 socket.config.json
+
+# Runtime and machine-local data
 data/runs/*.json
 data/tmp/*
 !data/tmp/.gitkeep
+data/cache/
+data/transcripts/
+data/secrets/
+
+# Local app configuration overrides
+config/local.json
+config/*.local.json
+
+# Desktop app build artifacts
+apps/desktop/dist/
+apps/desktop/out/
+apps/desktop/.cache/
