@@ -10,6 +10,7 @@ import { youtubeToTranscriptWorkflow } from './src/workflows/transcript/youtube-
 import { listSources, listDestinations, listProcessors } from './src/core/capability-registry.js';
 import { getRuntimeDiagnostics } from './src/core/runtime-diagnostics.js';
 import { loadUserConfig, saveUserDefaults } from './src/core/user-config.js';
+import { loadToolManifest } from './src/core/tool-manifest.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -27,6 +28,17 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${config.port}`);
 
   try {
+    if (req.method === 'GET' && url.pathname === '/api/tools') {
+      const manifest = loadToolManifest();
+      if (!manifest.ok) {
+        return json(res, 500, { ok: false, errors: manifest.errors });
+      }
+      return json(res, 200, {
+        ok: true,
+        tools: manifest.tools,
+      });
+    }
+
     if (req.method === 'GET' && url.pathname === '/api/health') {
       return json(res, 200, {
         ok: true,

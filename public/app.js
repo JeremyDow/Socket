@@ -1,4 +1,10 @@
 const form = document.getElementById('transcript-form');
+const toolTabsEl = document.getElementById('tool-tabs');
+const activeToolStatusEl = document.getElementById('active-tool-status');
+const markdownEmptyEl = document.getElementById('markdown-empty');
+const obsidianEmptyEl = document.getElementById('obsidian-empty');
+const transcriberRuntimeEl = document.getElementById('transcriber-runtime');
+const obsidianValidationEl = document.getElementById('obsidian-validation');
 const statusEl = document.getElementById('status');
 const previewEl = document.getElementById('preview');
 const errorEl = document.getElementById('error');
@@ -35,6 +41,10 @@ const SOURCE_STATUS_LABELS = {
   audio_fallback_unavailable: 'Audio fallback unavailable',
 };
 
+let toolManifest = [];
+let activeToolId = 'youtube';
+
+loadToolShell();
 loadDefaults();
 loadDiagnostics();
 
@@ -78,10 +88,124 @@ saveDefaultsBtn.addEventListener('click', async () => {
   }
 });
 
+async function loadToolShell() {
+  try {
+    const res = await fetch('/api/tools');
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      throw new Error((data.errors || []).join('; ') || 'Failed to load tool manifest');
+    }
+    toolManifest = data.tools;
+    renderToolTabs(toolManifest);
+    const initial = toolManifest.find((tool) => tool.selectable) || toolManifest[0];
+    if (initial) setActiveTool(initial.id);
+  } catch (err) {
+    toolTabsEl.innerHTML = '<span class="tool-tabs-error">Tool manifest unavailable</span>';
+    activeToolStatusEl.textContent = err.message || String(err);
+  }
+}
+
+function renderToolTabs(tools) {
+  toolTabsEl.innerHTML = '';
+  for (const tool of tools) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.role = 'tab';
+    btn.id = `tab-${tool.id}`;
+    btn.dataset.toolId = tool.id;
+    btn.textContent = tool.label;
+    btn.setAttribute('aria-selected', 'false');
+
+    if (!tool.selectable) {
+      btn.disabled = true;
+      btn.className = 'tool-tab unavailable';
+      btn.title = tool.unavailableReason || 'Unavailable';
+      btn.setAttribute('aria-disabled', 'true');
+    } else {
+      btn.className = 'tool-tab';
+      btn.addEventListener('click', () => setActiveTool(tool.id));
+    }
+
+    toolTabsEl.appendChild(btn);
+  }
+}
+
+function setActiveTool(toolId) {
+  const tool = toolManifest.find((entry) => entry.id === toolId);
+  if (!tool || !tool.selectable) return;
+
+  activeToolId = toolId;
+
+  for (const btn of toolTabsEl.querySelectorAll('[data-tool-id]')) {
+    const selected = btn.dataset.toolId === toolId;
+    btn.classList.toggle('active', selected);
+    btn.setAttribute('aria-selected', selected ? 'true' : 'false');
+  }
+
+  for (const surface of document.querySelectorAll('[data-tool-surface]')) {
+    const active = surface.dataset.toolSurface === toolId;
+    surface.classList.toggle('hidden', !active);
+    surface.classList.toggle('active', active);
+  }
+
+  activeToolStatusEl.textContent = `Active tool: ${tool.label}`;
+}
+
+function updateTranscriberSurface(message) {
+  if (transcriberRuntimeEl) {
+    transcriberRuntimeEl.textContent = message;
+  }
+}
+
+function clearObsidianValidation() {
+  if (!obsidianValidationEl) return;
+  obsidianValidationEl.textContent = '';
+  obsidianValidationEl.classList.add('hidden');
+}
+
+function showObsidianValidation(message) {
+  if (!obsidianValidationEl) return;
+  obsidianValidationEl.textContent = message;
+  obsidianValidationEl.classList.remove('hidden');
+}
+
+function validateTranscriptForm() {
+  clearObsidianValidation();
+
+  if (form.checkValidity()) {
+    return true;
+  }
+
+  const firstInvalid = form.querySelector(':invalid');
+  if (!firstInvalid) {
+    return false;
+  }
+
+  const surface = firstInvalid.closest('[data-tool-surface]');
+  const toolId = surface?.dataset?.toolSurface;
+  if (toolId) {
+    setActiveTool(toolId);
+  }
+
+  if (toolId === 'obsidian') {
+    showObsidianValidation('Complete the required Obsidian settings before generating a transcript.');
+  }
+
+  firstInvalid.focus();
+  firstInvalid.reportValidity();
+  setStatus('idle', 'Ready');
+  return false;
+}
+
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
+  if (!validateTranscriptForm()) {
+    return;
+  }
+
   clearResult();
   setStatus('running', 'Starting…');
+  updateTranscriberSurface('Transcription in progress…');
   initProgressStages();
   submitBtn.disabled = true;
 
@@ -123,7 +247,9 @@ form.addEventListener('submit', async (e) => {
         const event = JSON.parse(line);
 
         if (event.type === 'progress') {
-          setStatus('running', STAGE_LABELS[event.stage] || event.message);
+          const label = STAGE_LABELS[event.stage] || event.message;
+          setStatus('running', label);
+          updateTranscriberSurface(label);
           markStageDone(event.stage);
         } else if (event.type === 'complete') {
           finalResult = event;
@@ -145,6 +271,7 @@ form.addEventListener('submit', async (e) => {
     }
 
     setStatus('success', `Done — ${finalResult.meta?.segmentCount ?? 0} segments`);
+    updateTranscriberSurface('Transcription complete.');
     showTranscriptSource(finalResult.meta?.transcriptSourceStatus);
     showPreview(finalResult.preview);
     showFilePath(finalResult.writtenPath);
@@ -272,6 +399,9 @@ function clearResult() {
   currentMarkdown = '';
   previewPanel.classList.add('hidden');
   previewEl.textContent = '';
+  if (markdownEmptyEl) markdownEmptyEl.classList.remove('hidden');
+  if (obsidianEmptyEl) obsidianEmptyEl.classList.remove('hidden');
+  updateTranscriberSurface('Waiting for workflow status…');
   errorEl.classList.add('hidden');
   errorEl.textContent = '';
   filePathPanel.classList.add('hidden');
@@ -312,6 +442,7 @@ function showPreview(markdown) {
   currentMarkdown = markdown;
   previewEl.textContent = markdown;
   previewPanel.classList.remove('hidden');
+  if (markdownEmptyEl) markdownEmptyEl.classList.add('hidden');
 }
 
 function showFilePath(path) {
@@ -319,6 +450,7 @@ function showFilePath(path) {
   currentWrittenPath = path;
   filePathEl.textContent = path;
   filePathPanel.classList.remove('hidden');
+  if (obsidianEmptyEl) obsidianEmptyEl.classList.add('hidden');
 }
 
 function showError(message) {
