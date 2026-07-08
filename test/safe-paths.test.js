@@ -17,6 +17,27 @@ describe('safe-paths', () => {
     assert.equal(sanitizeFilename('  '), 'untitled');
   });
 
+  it('sanitizeFilename cleans awkward punctuation while preserving readable titles', () => {
+    assert.equal(
+      sanitizeFilename('Why This Works — Part 1: "Deep Dive" | Q&A'),
+      'Why This Works - Part 1 Deep Dive Q&A'
+    );
+    assert.equal(sanitizeFilename('Episode #42...'), 'Episode 42');
+  });
+
+  it('sanitizeFilename preserves meaningful internal ampersands', () => {
+    assert.equal(sanitizeFilename('Q&A Session'), 'Q&A Session');
+    assert.equal(sanitizeFilename('R&D Notes'), 'R&D Notes');
+    assert.equal(sanitizeFilename('AT&T Interview'), 'AT&T Interview');
+  });
+
+  it('sanitizeFilename removes isolated or awkward ampersands', () => {
+    assert.equal(sanitizeFilename('Brand & Identity'), 'Brand Identity');
+    assert.equal(sanitizeFilename('& Leading Topic'), 'Leading Topic');
+    assert.equal(sanitizeFilename('Trailing &'), 'Trailing');
+    assert.equal(sanitizeFilename('foo && bar'), 'foo bar');
+  });
+
   it('sanitizeFilename truncates long names', () => {
     const long = 'a'.repeat(300);
     assert.equal(sanitizeFilename(long).length, 200);

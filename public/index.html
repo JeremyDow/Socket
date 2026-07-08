@@ -23,16 +23,20 @@
             <input type="url" id="url" name="url" required placeholder="https://www.youtube.com/watch?v=...">
           </div>
 
-          <div class="field-row">
-            <div class="field">
-              <label for="startTime">Start timestamp</label>
-              <input type="text" id="startTime" name="startTime" placeholder="00:01:00 or 60">
+          <fieldset class="clip-fields">
+            <legend>Full transcript or quote clip</legend>
+            <p class="field-hint">Leave both empty for the full video. Set start/end to transcribe a clip only.</p>
+            <div class="field-row">
+              <div class="field">
+                <label for="startTime">Start timestamp</label>
+                <input type="text" id="startTime" name="startTime" placeholder="00:01:00 or 60">
+              </div>
+              <div class="field">
+                <label for="endTime">End timestamp</label>
+                <input type="text" id="endTime" name="endTime" placeholder="00:05:00 or 300">
+              </div>
             </div>
-            <div class="field">
-              <label for="endTime">End timestamp</label>
-              <input type="text" id="endTime" name="endTime" placeholder="00:05:00 or 300">
-            </div>
-          </div>
+          </fieldset>
 
           <div class="field-row">
             <div class="field">
@@ -46,8 +50,8 @@
           </div>
 
           <div class="notice" id="speaker-notice">
-            Speaker labels alternate by segment when Host and Guest are provided.
-            True diarization is not available — including for audio transcription fallback.
+            Speaker labels are provisional. True diarization is not available.
+            Host + Guest alternate by segment; Host only labels all as Host.
           </div>
 
           <fieldset class="destination-fields">
@@ -77,14 +81,32 @@
         <div id="transcript-source" class="transcript-source hidden"></div>
         <ul id="progress-stages" class="progress-stages hidden"></ul>
         <div id="limitation" class="limitation hidden"></div>
-        <div id="file-path" class="file-path hidden"></div>
-        <pre id="preview" class="preview hidden"></pre>
+
+        <div id="file-path-panel" class="output-panel hidden">
+          <div class="output-label">Written file</div>
+          <code id="file-path" class="file-path-value"></code>
+          <div class="action-row">
+            <button type="button" id="copy-path-btn" class="inline-btn">Copy Path</button>
+            <button type="button" id="reveal-btn" class="inline-btn">Reveal in Finder</button>
+          </div>
+        </div>
+
+        <div id="preview-panel" class="output-panel hidden">
+          <div class="output-label">Markdown preview</div>
+          <div class="action-row">
+            <button type="button" id="copy-markdown-btn" class="inline-btn">Copy Markdown</button>
+            <button type="button" id="copy-quotes-btn" class="inline-btn">Copy Quote Block</button>
+          </div>
+          <pre id="preview" class="preview"></pre>
+        </div>
+
         <div id="error" class="error hidden"></div>
       </section>
     </main>
 
     <footer>
-      <span>Socket v0.2.2 — youtube · local_whisper · obsidian</span>
+      <span>Socket v0.3 — youtube · local_whisper · obsidian</span>
+      <div id="diagnostics" class="diagnostics"></div>
     </footer>
   </div>
   <script src="/app.js"></script>

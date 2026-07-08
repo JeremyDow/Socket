@@ -95,6 +95,8 @@ export const youtubeToTranscriptWorkflow = {
       segments: labeled.segments,
       speakerLabels: labeled.speakerLabels,
       range,
+      startTime,
+      endTime,
       transcriptSource,
       transcriptionProvider,
       diarization,

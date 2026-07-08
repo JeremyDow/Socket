@@ -1,13 +1,14 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { config, ensureDataDirs } from './src/core/config.js';
 import { bootstrapDropins } from './src/bootstrap.js';
 import { runWorkflow } from './src/core/workflow-runner.js';
 import { youtubeToTranscriptWorkflow } from './src/workflows/transcript/youtube-to-transcript.js';
 import { listSources, listDestinations, listProcessors } from './src/core/capability-registry.js';
-import { getYtDlpDiagnostics } from './src/dropins/youtube/youtube-source.js';
+import { getRuntimeDiagnostics } from './src/core/runtime-diagnostics.js';
 import { loadUserConfig, saveUserDefaults } from './src/core/user-config.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -33,8 +34,14 @@ const server = http.createServer(async (req, res) => {
         destinations: listDestinations(),
         processors: listProcessors(),
         workflows: ['youtube-to-transcript'],
-        diagnostics: getYtDlpDiagnostics(),
+        diagnostics: getRuntimeDiagnostics(),
       });
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/reveal') {
+      const body = await readBody(req);
+      const { path: filePath } = JSON.parse(body);
+      return revealInFileManager(res, filePath);
     }
 
     if (req.method === 'GET' && url.pathname === '/api/config') {
@@ -141,5 +148,40 @@ function readBody(req) {
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => resolve(body));
     req.on('error', reject);
+  });
+}
+
+function revealInFileManager(res, filePath) {
+  if (!filePath || typeof filePath !== 'string') {
+    return json(res, 422, { success: false, error: 'path is required' });
+  }
+
+  const resolved = path.resolve(filePath);
+  if (!fs.existsSync(resolved)) {
+    return json(res, 404, { success: false, error: 'File not found' });
+  }
+
+  if (process.platform !== 'darwin') {
+    return json(res, 501, {
+      success: false,
+      error: 'Reveal in file manager is only supported on macOS',
+      path: resolved,
+    });
+  }
+
+  return new Promise((resolve) => {
+    const proc = spawn('open', ['-R', resolved], { stdio: 'ignore' });
+    proc.on('close', (code) => {
+      if (code === 0) {
+        json(res, 200, { success: true, path: resolved });
+      } else {
+        json(res, 500, { success: false, error: `open exited with code ${code}` });
+      }
+      resolve();
+    });
+    proc.on('error', (err) => {
+      json(res, 500, { success: false, error: err.message });
+      resolve();
+    });
   });
 }

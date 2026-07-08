@@ -1,12 +1,14 @@
 /**
  * Speaker label assignment.
  *
- * LIMITATION (v0): True speaker diarization is NOT implemented.
- * When Host and Guest names are provided, labels alternate by segment index.
- * Otherwise all segments are labeled "Speaker 1".
- *
- * This limitation is surfaced in the UI via speakerLabelMode in workflow meta.
+ * LIMITATION: True speaker diarization is NOT implemented.
+ * - Host + Guest → alternate by segment
+ * - Host only → all segments labeled Host
+ * - Neither → all segments labeled Speaker 1
  */
+
+export const SPEAKER_WARNING =
+  'Speaker labels are provisional. True diarization is not available.';
 
 export const SPEAKER_MODES = {
   ALTERNATING: 'alternating',
@@ -20,8 +22,7 @@ export function assignSpeakerLabels(segments, { hostName, guestName } = {}) {
   if (hasHost && hasGuest) {
     return {
       mode: SPEAKER_MODES.ALTERNATING,
-      limitation:
-        'Speaker labels alternate by segment (Host/Guest). True diarization is not available in v0.',
+      limitation: `${SPEAKER_WARNING} Host and Guest alternate by segment.`,
       segments: segments.map((seg, i) => ({
         ...seg,
         speaker: i % 2 === 0 ? hostName.trim() : guestName.trim(),
@@ -35,10 +36,13 @@ export function assignSpeakerLabels(segments, { hostName, guestName } = {}) {
   }
 
   const label = hasHost ? hostName.trim() : 'Speaker 1';
+  const detail = hasHost
+    ? 'All segments labeled as Host.'
+    : 'All segments labeled as Speaker 1.';
+
   return {
     mode: SPEAKER_MODES.SINGLE,
-    limitation:
-      'All segments labeled as a single speaker. Provide Host and Guest names for alternating labels.',
+    limitation: `${SPEAKER_WARNING} ${detail}`,
     segments: segments.map(seg => ({
       ...seg,
       speaker: label,
