@@ -57,7 +57,7 @@ Workflows compose drop-ins — they do not embed provider-specific logic.
 ```bash
 cd socket
 npm start
-# Open http://localhost:3847
+# Open http://127.0.0.1:3847
 ```
 
 Requires **yt-dlp** on PATH for live YouTube caption fetching.

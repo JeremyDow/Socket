@@ -121,6 +121,40 @@ header h1 {
   border-radius: var(--radius);
 }
 
+.external-app-frame-wrap {
+  position: relative;
+  min-height: 420px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.external-app-frame {
+  display: block;
+  width: 100%;
+  min-height: 420px;
+  border: 0;
+  background: var(--bg);
+}
+
+.external-app-unavailable {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--warning);
+  background: rgba(15, 17, 23, 0.92);
+  font-size: 0.9rem;
+}
+
+.external-app-unavailable[hidden] {
+  display: none;
+}
+
 .field-validation {
   color: var(--warning);
   font-size: 0.85rem;

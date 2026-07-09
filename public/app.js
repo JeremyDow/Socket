@@ -101,11 +101,82 @@ async function loadToolShell() {
     }
     toolManifest = data.tools;
     renderToolTabs(toolManifest);
+    renderExternalAppPanels(toolManifest);
     const initial = toolManifest.find((tool) => tool.selectable) || toolManifest[0];
     if (initial) setActiveTool(initial.id);
   } catch (err) {
     toolTabsEl.innerHTML = '<span class="tool-tabs-error">Tool manifest unavailable</span>';
     activeToolStatusEl.textContent = err.message || String(err);
+  }
+}
+
+const EXTERNAL_APP_LOAD_TIMEOUT_MS = 8000;
+
+function renderExternalAppPanels(tools) {
+  const container = document.getElementById('external-app-surfaces');
+  if (!container) return;
+  container.innerHTML = '';
+
+  for (const tool of tools) {
+    if (tool.type !== 'external-app' || !tool.selectable || !tool.url) continue;
+
+    const panel = document.createElement('div');
+    panel.className = 'tool-surface external-app-surface hidden';
+    panel.id = `panel-${tool.id}`;
+    panel.dataset.toolSurface = tool.id;
+    panel.setAttribute('role', 'tabpanel');
+    panel.setAttribute('aria-labelledby', `tab-${tool.id}`);
+    panel.tabIndex = 0;
+    panel.hidden = true;
+
+    const heading = document.createElement('h2');
+    heading.textContent = tool.label;
+    panel.appendChild(heading);
+
+    const lede = document.createElement('p');
+    lede.className = 'surface-lede';
+    lede.textContent = `External application at ${tool.url}. Socket does not proxy or store application data.`;
+    panel.appendChild(lede);
+
+    const frameWrap = document.createElement('div');
+    frameWrap.className = 'external-app-frame-wrap';
+
+    const unavailable = document.createElement('div');
+    unavailable.className = 'external-app-unavailable';
+    unavailable.id = `unavailable-${tool.id}`;
+    unavailable.setAttribute('role', 'status');
+    unavailable.textContent = `${tool.label} is not reachable at ${tool.url}. Start it as a separate process.`;
+
+    const iframe = document.createElement('iframe');
+    iframe.className = 'external-app-frame';
+    iframe.id = `frame-${tool.id}`;
+    iframe.title = `${tool.label} workspace`;
+    iframe.src = tool.url;
+    iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms');
+    iframe.loading = 'lazy';
+
+    let settled = false;
+    const markAvailable = () => {
+      if (settled) return;
+      settled = true;
+      unavailable.hidden = true;
+    };
+
+    const loadTimer = window.setTimeout(() => {
+      if (!settled) {
+        unavailable.hidden = false;
+      }
+    }, EXTERNAL_APP_LOAD_TIMEOUT_MS);
+
+    iframe.addEventListener('load', () => {
+      window.clearTimeout(loadTimer);
+      markAvailable();
+    });
+
+    frameWrap.appendChild(unavailable);
+    frameWrap.appendChild(iframe);
+    panel.appendChild(frameWrap);
+    container.appendChild(panel);
   }
 }
 

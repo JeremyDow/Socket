@@ -11,6 +11,7 @@ const DEFAULT_LABELS = {
   obsidian: 'Obsidian',
   browser: 'Browser',
   oracle: 'Oracle',
+  pylon: 'Pylon',
 };
 
 const UNAVAILABLE_REASONS = {
@@ -22,6 +23,32 @@ const UNAVAILABLE_REASONS = {
 
 export function defaultToolManifestPath(projectRoot = config.projectRoot) {
   return path.join(projectRoot, 'config', 'tools.json');
+}
+
+function validateExternalAppUrl(rawUrl, prefix, errors) {
+  if (typeof rawUrl !== 'string' || !rawUrl.trim()) {
+    errors.push(`${prefix}.url must be a non-empty string`);
+    return null;
+  }
+
+  const url = rawUrl.trim();
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    errors.push(`${prefix}.url is malformed`);
+    return null;
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    errors.push(`${prefix}.url must use http: or https:`);
+  }
+
+  if (parsed.username || parsed.password) {
+    errors.push(`${prefix}.url must not include credentials`);
+  }
+
+  return url;
 }
 
 export function validateToolManifest(raw) {
@@ -68,6 +95,26 @@ export function validateToolManifest(raw) {
     if (tool.label != null && (typeof tool.label !== 'string' || !tool.label.trim())) {
       errors.push(`${prefix}.label must be a non-empty string when provided`);
     }
+
+    if (tool.url != null && (typeof tool.url !== 'string' || !tool.url.trim())) {
+      errors.push(`${prefix}.url must be a non-empty string when provided`);
+    }
+
+    if (tool.type === 'native-tool' && tool.url != null) {
+      errors.push(`${prefix}.url must not be set on native-tool entries`);
+    }
+
+    if (tool.type === 'external-app') {
+      if (tool.enabled === true) {
+        if (tool.url == null) {
+          errors.push(`${prefix}.url is required when external-app is enabled`);
+        } else {
+          validateExternalAppUrl(tool.url, prefix, errors);
+        }
+      } else if (tool.url != null) {
+        validateExternalAppUrl(tool.url, prefix, errors);
+      }
+    }
   }
 
   if (errors.length > 0) {
@@ -95,7 +142,7 @@ export function normalizeToolEntry(tool) {
           : UNAVAILABLE_REASONS.disabled;
   }
 
-  return {
+  const entry = {
     id: tool.id,
     label,
     type: tool.type,
@@ -103,6 +150,12 @@ export function normalizeToolEntry(tool) {
     selectable,
     unavailableReason,
   };
+
+  if (tool.type === 'external-app' && typeof tool.url === 'string' && tool.url.trim()) {
+    entry.url = tool.url.trim();
+  }
+
+  return entry;
 }
 
 export function loadToolManifest(manifestPath = defaultToolManifestPath()) {

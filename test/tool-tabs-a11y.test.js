@@ -28,6 +28,8 @@ describe('tool tabs accessibility', () => {
     assert.match(appSrc, /ArrowLeft/);
     assert.match(appSrc, /ArrowRight/);
     assert.match(appSrc, /surface\.hidden = !active/);
+    assert.match(appSrc, /renderExternalAppPanels/);
+    assert.match(appSrc, /role', 'tabpanel'/);
   });
 
   it('styles expose a visible focus state for tabs', () => {

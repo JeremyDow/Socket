@@ -24,10 +24,18 @@ describe('tool tabs UI shell', () => {
     const appSrc = fs.readFileSync(path.join(ROOT, 'public/app.js'), 'utf8');
     assert.match(appSrc, /\/api\/tools/);
     assert.match(appSrc, /renderToolTabs/);
+    assert.match(appSrc, /renderExternalAppPanels/);
     assert.match(appSrc, /setActiveTool/);
     assert.match(appSrc, /activeToolId/);
     assert.match(appSrc, /tool\.selectable/);
     assert.match(appSrc, /unavailableReason/);
+    assert.match(appSrc, /allow-scripts allow-same-origin allow-forms/);
+  });
+
+  it('index.html provides a mount point for manifest-driven external-app panels', () => {
+    const html = fs.readFileSync(path.join(ROOT, 'public/index.html'), 'utf8');
+    assert.match(html, /id="external-app-surfaces"/);
+    assert.doesNotMatch(html, /id="panel-pylon"/);
   });
 
   it('server exposes a read-only tools endpoint', () => {

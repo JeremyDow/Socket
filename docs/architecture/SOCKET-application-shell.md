@@ -49,5 +49,13 @@ See `src/adapters/oracle/README.md`.
 ## Configuration
 
 - Tool enablement: `config/tools.json`
+- Enabled `external-app` tools require an absolute `http:` or `https:` `url` in the
+  manifest. Socket renders those tools as sandboxed iframe panels; it does not proxy
+  application APIs or share storage with the embedded app.
+- API requests made inside an embedded application page use that application's own
+  origin (for Pylon: `http://127.0.0.1:4780`). Socket does not submit, authenticate,
+  or sign those requests. `PYLON_SOCKET_ORIGIN` authorizes the Socket parent frame
+  where applicable; it does not convert Pylon API traffic into Socket-origin requests.
 - Obsidian defaults: `socket.config.json.example` and operator-saved defaults
   (not duplicated in the tool manifest)
+- Canonical Socket origin for Stage B: `http://127.0.0.1:3847`

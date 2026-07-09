@@ -25,7 +25,7 @@ const MIME = {
 };
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, `http://localhost:${config.port}`);
+  const url = new URL(req.url, `http://127.0.0.1:${config.port}`);
 
   try {
     if (req.method === 'GET' && url.pathname === '/api/tools') {
@@ -127,7 +127,7 @@ async function streamWorkflow(res, input) {
 }
 
 server.listen(config.port, () => {
-  console.log(`Socket running at http://localhost:${config.port}`);
+  console.log(`Socket running at http://127.0.0.1:${config.port}`);
   console.log('Drop-ins: youtube (source), obsidian (destination), local_whisper (processor)');
 });
 

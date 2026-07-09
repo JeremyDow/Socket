@@ -4,6 +4,7 @@
     { "id": "transcriber", "label": "Transcriber", "type": "native-tool", "enabled": true },
     { "id": "markdown", "label": "Markdown", "type": "native-tool", "enabled": true },
     { "id": "obsidian", "label": "Obsidian", "type": "native-tool", "enabled": true },
+    { "id": "pylon", "label": "Pylon", "type": "external-app", "enabled": true, "url": "http://127.0.0.1:4780" },
     { "id": "browser", "label": "Browser", "type": "native-tool", "enabled": false },
     { "id": "oracle", "label": "Oracle", "type": "external-app", "enabled": false }
   ]

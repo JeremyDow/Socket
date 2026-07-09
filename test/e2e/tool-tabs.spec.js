@@ -6,10 +6,10 @@ test.describe('Socket tool tabs', () => {
     await page.waitForSelector('#tool-tabs button');
   });
 
-  test('renders six manifest-driven tabs with correct enabled state', async ({ page }) => {
-    await expect(page.locator('#tool-tabs button')).toHaveCount(6);
+  test('renders seven manifest-driven tabs with correct enabled state', async ({ page }) => {
+    await expect(page.locator('#tool-tabs button')).toHaveCount(7);
 
-    for (const id of ['youtube', 'transcriber', 'markdown', 'obsidian']) {
+    for (const id of ['youtube', 'transcriber', 'markdown', 'obsidian', 'pylon']) {
       await expect(page.locator(`#tab-${id}`)).toBeEnabled();
     }
 
@@ -18,6 +18,16 @@ test.describe('Socket tool tabs', () => {
       await expect(tab).toBeDisabled();
       await expect(tab).toHaveClass(/unavailable/);
     }
+  });
+
+  test('creates a generic external-app panel with sandboxed iframe', async ({ page }) => {
+    await page.click('#tab-pylon');
+    await expect(page.locator('#panel-pylon')).toBeVisible();
+    await expect(page.locator('#frame-pylon')).toHaveAttribute('src', 'http://127.0.0.1:4780');
+    await expect(page.locator('#frame-pylon')).toHaveAttribute(
+      'sandbox',
+      'allow-scripts allow-same-origin allow-forms',
+    );
   });
 
   test('links tabs to panels with aria-controls and aria-selected', async ({ page }) => {
@@ -114,12 +124,12 @@ test.describe('Socket tool tabs', () => {
     await expect(page.locator('#tab-youtube')).toBeFocused();
 
     await page.keyboard.press('End');
-    await expect(page.locator('#tab-obsidian')).toHaveAttribute('aria-selected', 'true');
-    await expect(page.locator('#tab-obsidian')).toBeFocused();
+    await expect(page.locator('#tab-pylon')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#tab-pylon')).toBeFocused();
   });
 
   test('wraps keyboard navigation across selectable tabs only', async ({ page }) => {
-    await page.locator('#tab-obsidian').focus();
+    await page.locator('#tab-pylon').focus();
     await page.keyboard.press('ArrowRight');
     await expect(page.locator('#tab-youtube')).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('#tab-browser')).toBeDisabled();
