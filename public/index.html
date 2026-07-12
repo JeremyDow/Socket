@@ -8,15 +8,21 @@
 </head>
 <body>
   <div class="app">
-    <header>
-      <h1>Socket</h1>
-      <p class="tagline">Workflows own applications.</p>
+    <header class="app-header">
+      <div class="header-text">
+        <h1>Socket</h1>
+        <p class="tagline">Workflows own applications.</p>
+      </div>
+      <button type="button" id="assistant-toggle" class="assistant-toggle" aria-expanded="false" aria-controls="assistant-root" title="Open assistant">
+        Assistant
+      </button>
     </header>
 
     <nav id="tool-tabs" class="tool-tabs" role="tablist" aria-label="Socket tools"></nav>
     <p id="active-tool-status" class="active-tool-status" aria-live="polite"></p>
 
-    <main>
+    <div class="workspace-shell">
+    <main class="workspace-main">
       <section class="panel workspace-panel">
         <form id="transcript-form" novalidate>
           <div id="tool-surfaces">
@@ -142,11 +148,48 @@
       </section>
     </main>
 
+    <aside id="assistant-root" class="assistant-panel" aria-hidden="true" aria-label="Socket assistant">
+      <div class="assistant-panel-inner">
+        <header class="assistant-header">
+          <div>
+            <h2>Assistant</h2>
+            <p class="assistant-subhead">Socket-owned conversations</p>
+          </div>
+          <div class="assistant-header-actions">
+            <button type="button" id="assistant-new" class="inline-btn">New</button>
+            <button type="button" id="assistant-close" class="inline-btn" aria-label="Close assistant">Close</button>
+          </div>
+        </header>
+
+        <div class="assistant-body">
+          <div class="assistant-sidebar">
+            <div class="assistant-sidebar-label">Conversations</div>
+            <div id="assistant-conversation-list" class="assistant-conversation-list" role="list"></div>
+          </div>
+
+          <div class="assistant-chat">
+            <div id="assistant-messages" class="assistant-messages" aria-live="polite"></div>
+            <p id="assistant-status" class="assistant-status hidden" role="status"></p>
+            <form id="assistant-form" class="assistant-form">
+              <label class="visually-hidden" for="assistant-input">Message</label>
+              <textarea id="assistant-input" name="message" rows="2" placeholder="Message the Socket assistant…" required></textarea>
+              <button type="submit" id="assistant-send" class="assistant-send">Send</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </aside>
+    </div>
+
     <footer>
-      <span>Socket v0.4 — manifest-driven tool shell</span>
+      <span>Socket v0.5 — assistant workspace cornerstone (S5)</span>
       <div id="diagnostics" class="diagnostics"></div>
     </footer>
   </div>
   <script src="/app.js"></script>
+  <script type="module">
+    import { initAssistantPanel } from '/assistant-panel.js';
+    initAssistantPanel();
+  </script>
 </body>
 </html>

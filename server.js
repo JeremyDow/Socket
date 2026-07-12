@@ -11,6 +11,7 @@ import { listSources, listDestinations, listProcessors } from './src/core/capabi
 import { getRuntimeDiagnostics } from './src/core/runtime-diagnostics.js';
 import { loadUserConfig, saveUserDefaults } from './src/core/user-config.js';
 import { loadToolManifest } from './src/core/tool-manifest.js';
+import { completeWithXai } from './src/assistant/xai-chat.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -88,6 +89,35 @@ const server = http.createServer(async (req, res) => {
       const result = await runWorkflow(youtubeToTranscriptWorkflow, input);
       const status = result.success ? 200 : 422;
       return json(res, status, result);
+    }
+
+    // S5: Socket-owned assistant completion. Provider path is hardcoded (xAI).
+    // Conversation structure is owned by the Socket client, not this route.
+    if (req.method === 'POST' && url.pathname === '/api/assistant/chat') {
+      const body = await readBody(req);
+      let input;
+      try {
+        input = JSON.parse(body);
+      } catch {
+        return json(res, 400, { ok: false, error: 'Invalid JSON body' });
+      }
+
+      try {
+        const message = await completeWithXai(input.messages);
+        return json(res, 200, { ok: true, message });
+      } catch (err) {
+        const code = err.code || 'ASSISTANT_ERROR';
+        const status =
+          code === 'MISSING_API_KEY' ? 503
+            : code === 'INVALID_MESSAGES' ? 400
+              : code === 'PROVIDER_ERROR' ? (err.status && err.status >= 400 && err.status < 600 ? err.status : 502)
+                : 500;
+        return json(res, status, {
+          ok: false,
+          error: err.message || String(err),
+          code,
+        });
+      }
     }
 
     if (req.method === 'GET') {

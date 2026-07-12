@@ -5,6 +5,13 @@
 Socket is the **host workspace** for synchronized tool tabs. It coordinates reads,
 drafts, and operator-approved writes across native tools and external apps.
 
+## Assistant (S5)
+
+The Socket assistant is a **participant** inside the workspace, not Socket itself
+and not a provider-owned chat product. S5 adds a native right-side slide-out
+panel with Socket-owned in-session conversations and a single hardcoded
+completion path (xAI). See `SOCKET-S5-assistant-workspace.md`.
+
 ## Tool model
 
 - Tools appear as synchronized tabs in the Socket UI.
