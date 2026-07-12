@@ -11,7 +11,7 @@ import { listSources, listDestinations, listProcessors } from './src/core/capabi
 import { getRuntimeDiagnostics } from './src/core/runtime-diagnostics.js';
 import { loadUserConfig, saveUserDefaults } from './src/core/user-config.js';
 import { loadToolManifest } from './src/core/tool-manifest.js';
-import { completeWithXai } from './src/assistant/xai-chat.js';
+import { completeWithOpenAI } from './src/assistant/openai-chat.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -91,7 +91,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, status, result);
     }
 
-    // S5: Socket-owned assistant completion. Provider path is hardcoded (xAI).
+    // S5: Socket-owned assistant completion. Provider path is hardcoded (OpenAI).
     // Conversation structure is owned by the Socket client, not this route.
     if (req.method === 'POST' && url.pathname === '/api/assistant/chat') {
       const body = await readBody(req);
@@ -103,7 +103,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       try {
-        const message = await completeWithXai(input.messages);
+        const message = await completeWithOpenAI(input.messages);
         return json(res, 200, { ok: true, message });
       } catch (err) {
         const code = err.code || 'ASSISTANT_ERROR';

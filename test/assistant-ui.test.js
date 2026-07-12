@@ -23,7 +23,8 @@ describe('S5 assistant workspace UI shell', () => {
   it('wires a server completion route without conversation persistence APIs', () => {
     const serverSrc = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8');
     assert.match(serverSrc, /\/api\/assistant\/chat/);
-    assert.match(serverSrc, /completeWithXai/);
+    assert.match(serverSrc, /completeWithOpenAI/);
+    assert.doesNotMatch(serverSrc, /completeWithXai|XAI_API_KEY/);
     assert.doesNotMatch(serverSrc, /\/api\/assistant\/conversations/);
     assert.doesNotMatch(serverSrc, /long-term memory|pinned conversation/i);
   });

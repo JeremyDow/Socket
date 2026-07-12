@@ -1,12 +1,12 @@
 /**
- * S5 hardcoded provider path: xAI Chat Completions.
+ * S5 hardcoded provider path: OpenAI Responses API.
  *
  * This is intentionally not a provider abstraction. Socket owns conversation
  * structure elsewhere; this module only requests an assistant completion.
  */
 
-const DEFAULT_BASE_URL = 'https://api.x.ai/v1';
-const DEFAULT_MODEL = 'grok-4.5';
+const DEFAULT_BASE_URL = 'https://api.openai.com/v1';
+const DEFAULT_MODEL = 'gpt-4.1-mini';
 
 const SYSTEM_PROMPT =
   'You are the Socket assistant — a participant inside the Socket workspace. ' +
@@ -17,11 +17,11 @@ const SYSTEM_PROMPT =
  * @param {{ apiKey?: string, baseUrl?: string, model?: string, fetchImpl?: typeof fetch }} [options]
  * @returns {Promise<{ role: 'assistant', content: string, model: string }>}
  */
-export async function completeWithXai(messages, options = {}) {
-  const apiKey = options.apiKey ?? process.env.XAI_API_KEY;
+export async function completeWithOpenAI(messages, options = {}) {
+  const apiKey = options.apiKey ?? process.env.OPENAI_API_KEY;
   if (!apiKey) {
     const err = new Error(
-      'XAI_API_KEY is not set. Export it before starting Socket to enable the assistant.',
+      'OPENAI_API_KEY is not set. Export it before starting Socket to enable the assistant.',
     );
     err.code = 'MISSING_API_KEY';
     throw err;
@@ -46,8 +46,8 @@ export async function completeWithXai(messages, options = {}) {
     }
   }
 
-  const baseUrl = (options.baseUrl || process.env.XAI_BASE_URL || DEFAULT_BASE_URL).replace(/\/$/, '');
-  const model = options.model || process.env.XAI_MODEL || DEFAULT_MODEL;
+  const baseUrl = (options.baseUrl || process.env.OPENAI_BASE_URL || DEFAULT_BASE_URL).replace(/\/$/, '');
+  const model = options.model || process.env.OPENAI_MODEL || DEFAULT_MODEL;
   const fetchImpl = options.fetchImpl || globalThis.fetch;
 
   if (typeof fetchImpl !== 'function') {
@@ -56,16 +56,17 @@ export async function completeWithXai(messages, options = {}) {
     throw err;
   }
 
+  // Responses API: conversation history as input items; system via instructions.
   const body = {
     model,
-    stream: false,
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      ...messages.map((m) => ({ role: m.role, content: m.content })),
-    ],
+    instructions: SYSTEM_PROMPT,
+    input: messages.map((m) => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: m.content,
+    })),
   };
 
-  const response = await fetchImpl(`${baseUrl}/chat/completions`, {
+  const response = await fetchImpl(`${baseUrl}/responses`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -98,8 +99,8 @@ export async function completeWithXai(messages, options = {}) {
     throw err;
   }
 
-  const content = payload?.choices?.[0]?.message?.content;
-  if (typeof content !== 'string' || !content.trim()) {
+  const content = extractResponseText(payload);
+  if (!content) {
     const err = new Error('Provider response missing assistant content');
     err.code = 'PROVIDER_ERROR';
     throw err;
@@ -107,12 +108,38 @@ export async function completeWithXai(messages, options = {}) {
 
   return {
     role: 'assistant',
-    content: content.trim(),
-    model: payload.model || model,
+    content,
+    model: (typeof payload.model === 'string' && payload.model) || model,
   };
 }
 
-export const xaiDefaults = {
+function extractResponseText(payload) {
+  if (!payload || typeof payload !== 'object') return null;
+
+  if (typeof payload.output_text === 'string' && payload.output_text.trim()) {
+    return payload.output_text.trim();
+  }
+
+  const output = Array.isArray(payload.output) ? payload.output : [];
+  for (const item of output) {
+    if (!item || typeof item !== 'object') continue;
+    const content = Array.isArray(item.content) ? item.content : [];
+    for (const block of content) {
+      if (!block || typeof block !== 'object') continue;
+      if (
+        (block.type === 'output_text' || block.type === 'text') &&
+        typeof block.text === 'string' &&
+        block.text.trim()
+      ) {
+        return block.text.trim();
+      }
+    }
+  }
+
+  return null;
+}
+
+export const openaiDefaults = {
   baseUrl: DEFAULT_BASE_URL,
   model: DEFAULT_MODEL,
   systemPrompt: SYSTEM_PROMPT,

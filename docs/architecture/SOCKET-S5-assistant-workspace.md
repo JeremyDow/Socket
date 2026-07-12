@@ -87,7 +87,7 @@ the workspace or the conversation UI.
 - Conversation state lives in Socket client memory for the running browser
   session (panel close/reopen and tool switching preserve it).
 - Conversations may be lost when Socket restarts or the page is reloaded.
-- Provider path: xAI Chat Completions (`XAI_API_KEY`, model `grok-4.5`) via
+- Provider path: OpenAI Responses API (`OPENAI_API_KEY`, model `gpt-4.1-mini`) via
   `POST /api/assistant/chat`. Hardcoded; not an abstraction layer.
 - UI is Socket-native components only — no iframe / embedded provider chat.
 

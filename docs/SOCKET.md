@@ -65,8 +65,9 @@ Requires **yt-dlp** on PATH for live YouTube caption fetching.
 ## Assistant workspace (S5)
 
 Socket includes a native right-side assistant panel. Conversations are owned by
-Socket for the current browser session. A single hardcoded provider path (xAI)
-returns assistant replies via `POST /api/assistant/chat`. Requires `XAI_API_KEY`.
+Socket for the current browser session. A single hardcoded provider path (OpenAI
+Responses API) returns assistant replies via `POST /api/assistant/chat`.
+Requires `OPENAI_API_KEY`.
 
 See `docs/architecture/SOCKET-S5-assistant-workspace.md`.
 
@@ -76,7 +77,7 @@ See `docs/architecture/SOCKET-S5-assistant-workspace.md`.
 socket/
   server.js              — HTTP server + API
   src/core/              — contracts and runtime
-  src/assistant/         — S5 hardcoded completion path (xAI)
+  src/assistant/         — S5 hardcoded completion path (OpenAI Responses)
   src/dropins/           — pluggable adapters
   src/workflows/         — composed workflows
   public/                — local web UI (+ Socket-owned assistant panel)
